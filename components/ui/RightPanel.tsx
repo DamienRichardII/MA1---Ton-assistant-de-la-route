@@ -1,12 +1,13 @@
 'use client';
 import { useStore } from '@/lib/store';
 import { TIPS } from '@/lib/constants';
-import { useMemo } from 'react';
+import { useState, useEffect } from 'react';
 
 export function RightPanel() {
   const { qcmTotal, qcmCorrect, qcmStreak, profile } = useStore();
   const pct = qcmTotal ? Math.round((qcmCorrect / qcmTotal) * 100) : 0;
-  const tip = useMemo(() => TIPS[Math.floor(Math.random() * TIPS.length)], []);
+  const [tip, setTip] = useState(TIPS[0]);
+  useEffect(() => { setTip(TIPS[Math.floor(Math.random() * TIPS.length)]); }, []);
   const levelMap: Record<string, string> = { debutant: '🎓 Débutant', intermediaire: '📈 Intermédiaire', avance: '🏆 Expert' };
 
   return (
