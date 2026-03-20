@@ -1161,7 +1161,7 @@ async def cron_daily():
             send_streak_fn=send_streak_reminder if HAS_EMAIL else (lambda *a: None),
             send_push_fn=push_fn,
         )
-                results["email_sequences"] = await check_sequences(_users)
+        results["email_sequences"] = await check_sequences(_users)
         return {"results": results}
     except Exception as e:
         return {"error": str(e), "ts": __import__("time").time()}
