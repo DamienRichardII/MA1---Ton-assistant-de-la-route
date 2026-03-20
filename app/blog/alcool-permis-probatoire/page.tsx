@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Alcool et permis probatoire : les règles en 2026',
-  description: 'Taux d'alcoolémie autorisé, sanctions, conduite accompagnée. Tout ce qu'un jeune conducteur doit savoir.',
-  openGraph: { title: 'Alcool et permis probatoire : les règles en 2026', description: 'Taux d'alcoolémie autorisé, sanctions, conduite accompagnée. Tout ce qu'un jeune conducteur doit savoir.' },
+  title: "Alcool et permis probatoire : les règles en 2026",
+  description: "Taux d'alcoolémie autorisé, sanctions, conduite accompagnée. Tout ce qu'un jeune conducteur doit savoir.",
+  openGraph: { title: "Alcool et permis probatoire : les règles en 2026", description: "Taux d'alcoolémie autorisé, sanctions, conduite accompagnée. Tout ce qu'un jeune conducteur doit savoir." },
 };
 
 export default function Article() {

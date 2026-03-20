@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'La priorité à droite : quand et comment l'appliquer',
-  description: 'Règles de la priorité à droite, exceptions, ronds-points. Ne faites plus d'erreur le jour de l'examen.',
-  openGraph: { title: 'La priorité à droite : quand et comment l'appliquer', description: 'Règles de la priorité à droite, exceptions, ronds-points. Ne faites plus d'erreur le jour de l'examen.' },
+  title: "La priorité à droite : quand et comment l'appliquer",
+  description: "Règles de la priorité à droite, exceptions, ronds-points. Ne faites plus d'erreur le jour de l'examen.",
+  openGraph: { title: "La priorité à droite : quand et comment l'appliquer", description: "Règles de la priorité à droite, exceptions, ronds-points. Ne faites plus d'erreur le jour de l'examen." },
 };
 
 export default function Article() {
