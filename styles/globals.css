@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Nunito+Sans:ital,opsz,wght@0,6..12,300..700;1,6..12,400&display=swap');
+
+:root {
+  --navy: #0a1628;
+  --navy-light: #0f2035;
+  --teal: #3a9db0;
+  --sky: #7ec8e3;
+  --ice: #d0eaf2;
+  --glass: rgba(15, 40, 70, 0.35);
+  --glass-border: rgba(58, 157, 176, 0.12);
+  --glass-specular: rgba(126, 200, 227, 0.12);
+}
+
+* { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+body {
+  font-family: 'Nunito Sans', system-ui, sans-serif;
+  background: var(--navy);
+  color: var(--ice);
+}
+
+::selection { background: rgba(58, 157, 176, 0.4); color: #fff; }
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-thumb { background: rgba(58, 157, 176, 0.2); border-radius: 10px; }
+
+@layer components {
+  .glass {
+    @apply backdrop-blur-[40px] border border-white/[0.08];
+    background: var(--glass);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.4), 0 1px 0 var(--glass-specular) inset;
+  }
+  .glass-subtle {
+    @apply backdrop-blur-[24px] border border-white/[0.05];
+    background: rgba(15, 40, 70, 0.2);
+  }
+  .btn-primary {
+    @apply px-6 py-3 rounded-full font-display font-bold text-white text-sm transition-all duration-200;
+    background: linear-gradient(135deg, var(--teal), var(--sky));
+    box-shadow: 0 4px 20px rgba(58, 157, 176, 0.3);
+  }
+  .btn-primary:hover { @apply -translate-y-0.5; box-shadow: 0 6px 28px rgba(58, 157, 176, 0.4); }
+  .btn-ghost {
+    @apply px-4 py-2 rounded-full border border-white/[0.08] bg-transparent text-ma1-ice/60 text-xs font-semibold transition-all duration-200;
+  }
+  .btn-ghost:hover { @apply bg-white/[0.04] text-ma1-ice/80; }
+}

@@ -1,0 +1,17 @@
+# MA1 Code de la Route — Requirements v6
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9
+anthropic>=0.30.0
+python-dotenv>=1.0.1
+pydantic>=2.7.0
+httpx>=0.27.0
+bcrypt>=4.1.0
+PyJWT>=2.8.0
+slowapi>=0.1.9
+supabase>=2.4.0
+stripe>=8.0.0
+reportlab>=4.1.0
+resend>=0.7.0
+# chromadb>=0.5.0  # If RAG index available
+pywebpush>=2.0.0

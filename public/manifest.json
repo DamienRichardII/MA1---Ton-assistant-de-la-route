@@ -1,0 +1,22 @@
+{
+  "name": "MA1 — Code de la Route",
+  "short_name": "MA1",
+  "description": "L'IA qui t'aide à réussir ton Code de la Route",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a1628",
+  "theme_color": "#3a9db0",
+  "orientation": "portrait",
+  "categories": [
+    "education"
+  ],
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "/ma1-logo-brand.jpeg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}
