@@ -305,11 +305,6 @@ def get_claude():
     if not key: raise HTTPException(503,"ANTHROPIC_API_KEY manquante")
     return anthropic.Anthropic(api_key=key)
 
-def get_claude_async():
-    key = os.getenv("ANTHROPIC_API_KEY","")
-    if not key: raise HTTPException(503,"ANTHROPIC_API_KEY manquante")
-    return anthropic.AsyncAnthropic(api_key=key)
-
 # Pydantic
 class Message(BaseModel):
     role:str; content:str
@@ -422,13 +417,13 @@ async def chat_stream(req:ChatRequest):
     sys_p=ADAPTIVE_SYSTEM.format(profile_summary=profile_summary(uid),base_system=SYSTEM_PROMPT)
     hist=([{"role":m.role,"content":m.content} for m in req.history] if req.history else _conversations[uid].copy())
     hist.append({"role":"user","content":enriched})
-    client=get_claude_async()
+    client=get_claude()
     async def gen():
         full=""
         try:
-            async with client.messages.stream(model=get_model("chat"),max_tokens=1200,system=sys_p,messages=hist) as stream:
+            with client.messages.stream(model=get_model("chat"),max_tokens=1200,system=sys_p,messages=hist) as stream:
                 if sources: yield f"data: {json.dumps({'type':'sources','sources':sources})}\n\n"
-                async for text in stream.text_stream:
+                for text in stream.text_stream:
                     full+=text
                     yield f"data: {json.dumps({'type':'token','text':text})}\n\n"
             _conversations[uid].append({"role":"user","content":req.message})
@@ -1166,7 +1161,7 @@ async def cron_daily():
             send_streak_fn=send_streak_reminder if HAS_EMAIL else (lambda *a: None),
             send_push_fn=push_fn,
         )
-        results["email_sequences"] = await check_sequences(_users)
+                results["email_sequences"] = await check_sequences(_users)
         return {"results": results}
     except Exception as e:
         return {"error": str(e), "ts": __import__("time").time()}

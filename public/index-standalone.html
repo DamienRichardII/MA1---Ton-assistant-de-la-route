@@ -767,6 +767,30 @@ html[data-theme="light"] .pos-test{background:#F5F5F7 !important}
 @media(max-width:1024px){.hdr-right .streak-b,.hdr-right .xp-b{display:none}}
 @media(max-width:768px){.logo-text{display:none}}
 
+
+/* ═══ QCM RESULTS CARD ═══ */
+.qcm-results-card{display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;padding:28px 20px;border-radius:24px;background:var(--glass);border:0.5px solid var(--gb);box-shadow:var(--gsh-lg);backdrop-filter:blur(40px) saturate(180%);-webkit-backdrop-filter:blur(40px) saturate(180%);animation:fadeIn 0.4s ease;max-width:400px;margin:20px auto}
+.qcr-emoji{font-size:44px}
+.qcr-title{font-family:var(--fd);font-size:20px;font-weight:800;letter-spacing:-0.5px}
+.qcr-score-ring{width:100px;height:100px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.qcr-score-ring.pass{background:rgba(48,209,88,0.06);border:3px solid rgba(48,209,88,0.3)}
+.qcr-score-ring.fail{background:rgba(255,69,58,0.04);border:3px solid rgba(255,69,58,0.2)}
+.qcr-score-val{font-family:var(--fd);font-size:28px;font-weight:800;letter-spacing:-1px}
+.qcr-score-ring.pass .qcr-score-val{color:var(--green)}
+.qcr-score-ring.fail .qcr-score-val{color:var(--red)}
+.qcr-score-sub{font-size:11px;color:var(--t3);margin-top:-2px}
+.qcr-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:100%}
+.qcr-stat{padding:10px 4px;border-radius:14px;background:rgba(255,255,255,0.03);text-align:center}
+html[data-theme="light"] .qcr-stat{background:rgba(0,0,0,0.02)}
+.qcr-sv{font-family:var(--fd);font-size:18px;font-weight:800;letter-spacing:-0.5px}
+.qcr-sl{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:0.3px;margin-top:2px}
+.qcr-continue{width:100%;padding:13px;border-radius:14px;border:none;background:linear-gradient(135deg,var(--teal),var(--sky));color:#fff;font-family:var(--fd);font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 4px 20px rgba(10,132,255,0.25);transition:all 0.25s;letter-spacing:-0.2px;margin-top:4px}
+.qcr-continue:hover{transform:translateY(-2px);box-shadow:0 6px 28px rgba(10,132,255,0.35)}
+html[data-theme="light"] .qcr-continue{background:linear-gradient(135deg,#0071E3,#2997FF)}
+html[data-theme="light"] .qcm-results-card{background:rgba(255,255,255,0.8)}
+@keyframes fadeIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
+@media(max-width:640px){.qcr-stats{grid-template-columns:repeat(2,1fr)}}
+
 </style>
 </head>
 <body>
@@ -1109,11 +1133,89 @@ function onKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg()}
 function autoH(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px'}
 
 /* QCM */
-async function loadQCM(topic){const w=document.getElementById('question-wrap');const l=document.getElementById('qcm-loading');w.innerHTML='';l.style.display='flex';try{const d=document.getElementById('diff-select').value;const r=await fetch(`${API}/qcm/generate`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic,n:8,user_id:S.userId,difficulty:d})});l.style.display='none';if(!r.ok){if(r.status===429){openPricing();return}throw new Error()}const data=await r.json();S.qcm.questions=data.questions;S.qcm.current=0;if(data.profile_level)S.profile.level=data.profile_level;renderQ()}catch(e){l.style.display='none';w.innerHTML=`<div style="color:var(--t2);text-align:center;padding:32px">⚙️ Mode hors-ligne<br><button onclick="loadQCM('${topic}')" style="margin-top:12px;padding:8px 18px;border-radius:50px;border:1px solid var(--gb);background:var(--glass);color:var(--text);cursor:pointer;font-size:12px">Reessayer</button></div>`}}
+async function loadQCM(topic){
+  // Use prefetched data if available (instant load!)
+  if(_prefetchedQCM && _prefetchedQCM.questions){
+    S.qcm.questions=_prefetchedQCM.questions;
+    S.qcm.current=0;
+    if(_prefetchedQCM.profile_level)S.profile.level=_prefetchedQCM.profile_level;
+    _prefetchedQCM=null;
+    renderQ();
+    return;
+  }
+  const w=document.getElementById('question-wrap');const l=document.getElementById('qcm-loading');w.innerHTML='';l.style.display='flex';
+  try{
+    const d=document.getElementById('diff-select').value;
+    const r=await fetch(`${API}/qcm/generate`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic,n:8,user_id:S.userId,difficulty:d})});
+    l.style.display='none';
+    if(!r.ok){if(r.status===429){openPricing();return}throw new Error()}
+    const data=await r.json();
+    S.qcm.questions=data.questions;S.qcm.current=0;
+    if(data.profile_level)S.profile.level=data.profile_level;
+    renderQ();
+  }catch(e){l.style.display='none';w.innerHTML=`<div style="color:var(--t2);text-align:center;padding:32px">⚙️ Mode hors-ligne<br><button onclick="loadQCM('${topic}')" style="margin-top:12px;padding:8px 18px;border-radius:50px;border:1px solid var(--gb);background:var(--glass);color:var(--text);cursor:pointer;font-size:12px">Reessayer</button></div>`}
+}}
 function regenQCM(){loadQCM(S.topic)}
 function renderQ(){const w=document.getElementById('question-wrap');const q=S.qcm.questions[S.qcm.current];if(!q)return;const c=document.createElement('div');c.className='question-card';c.innerHTML=`<div class="q-meta"><span class="q-ref">${q.ref||'Code de la Route'}</span><span class="q-num">Q${S.qcm.current+1} / ${S.qcm.questions.length}</span></div><div class="q-text">${q.question}</div><div class="choices" id="choices-list"></div><div class="explanation" id="expl">${q.explanation||''}</div><button class="next-q-btn" id="next-q" onclick="nextQ()">Suivante →</button>`;w.innerHTML='';w.appendChild(c);const cl=document.getElementById('choices-list');['A','B','C','D'].forEach((l,i)=>{if(i>=q.choices.length)return;const b=document.createElement('button');b.className='choice';b.innerHTML=`<span class="choice-letter">${l}</span>${q.choices[i]}`;b.onclick=()=>answerQ(i);cl.appendChild(b)})}
 async function answerQ(sel){if(!S.qcm.questions.length)return;const q=S.qcm.questions[S.qcm.current];const bs=document.querySelectorAll('.choice');bs.forEach(b=>b.disabled=true);const ok=sel===q.answer_index;bs[q.answer_index].classList.add('correct');if(!ok)bs[sel].classList.add('wrong');if(ok){S.qcm.correct++;S.qcm.streak++;addXP(10,'Bonne reponse')}else{S.qcm.wrong++;S.qcm.streak=0}S.qcm.total++;recAct();document.getElementById('expl')?.classList.add('show');document.getElementById('next-q')?.classList.add('show');document.getElementById('sc-ok').textContent=S.qcm.correct;document.getElementById('sc-bad').textContent=S.qcm.wrong;chkBadges();try{const r=await fetch(`${API}/qcm/result`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:S.userId,topic:S.topic,correct:ok})});if(r.ok){const d=await r.json();if(d.profile){S.profile=d.profile;updateRP()}}}catch(e){}updateRP();saveProg()}
-function nextQ(){S.qcm.current++;if(S.qcm.current>=S.qcm.questions.length){loadQCM(S.topic);return}renderQ()}
+function nextQ(){
+  S.qcm.current++;
+  if(S.qcm.current>=S.qcm.questions.length){
+    showQCMResults();
+    return;
+  }
+  renderQ();
+  // Prefetch next batch when 2 questions left
+  if(S.qcm.current>=S.qcm.questions.length-2 && !S._prefetching){
+    prefetchQCM(S.topic);
+  }
+}
+
+// Prefetch next QCM batch in background
+var _prefetchedQCM = null;
+function prefetchQCM(topic){
+  S._prefetching = true;
+  var d = document.getElementById('diff-select')?.value || 'auto';
+  fetch(API+'/qcm/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic:topic,n:8,user_id:S.userId,difficulty:d})})
+  .then(function(r){return r.json()})
+  .then(function(data){_prefetchedQCM=data;S._prefetching=false;})
+  .catch(function(){S._prefetching=false;});
+}
+
+// Show results between series
+function showQCMResults(){
+  var w=document.getElementById('question-wrap');
+  var total=S.qcm.correct+S.qcm.wrong;
+  var rate=total>0?Math.round((S.qcm.correct/total)*100):0;
+  var passed=rate>=70;
+  w.innerHTML='<div class="qcm-results-card">'+
+    '<div class="qcr-emoji">'+(passed?'🎉':'💪')+'</div>'+
+    '<div class="qcr-title">'+(passed?'Bravo !':'Continuez !')+'</div>'+
+    '<div class="qcr-score-ring '+(passed?'pass':'fail')+'">'+
+      '<div class="qcr-score-val">'+rate+'%</div>'+
+      '<div class="qcr-score-sub">'+S.qcm.correct+'/'+total+'</div>'+
+    '</div>'+
+    '<div class="qcr-stats">'+
+      '<div class="qcr-stat"><div class="qcr-sv" style="color:var(--green)">'+S.qcm.correct+'</div><div class="qcr-sl">Correctes</div></div>'+
+      '<div class="qcr-stat"><div class="qcr-sv" style="color:var(--red)">'+S.qcm.wrong+'</div><div class="qcr-sl">Erreurs</div></div>'+
+      '<div class="qcr-stat"><div class="qcr-sv">'+S.streak+'j</div><div class="qcr-sl">Serie</div></div>'+
+      '<div class="qcr-stat"><div class="qcr-sv" style="color:var(--purple)">'+S.xp+'</div><div class="qcr-sl">XP</div></div>'+
+    '</div>'+
+    '<button class="qcr-continue" onclick="continueQCM()">Continuer '+(passed?'→':'les revisions →')+'</button>'+
+  '</div>';
+}
+
+function continueQCM(){
+  if(_prefetchedQCM && _prefetchedQCM.questions){
+    S.qcm.questions=_prefetchedQCM.questions;
+    S.qcm.current=0;
+    if(_prefetchedQCM.profile_level)S.profile.level=_prefetchedQCM.profile_level;
+    _prefetchedQCM=null;
+    renderQ();
+  } else {
+    loadQCM(S.topic);
+  }
+}
 
 /* EXAM */
 async function startExam(){if(S.plan==='free'&&S.examFree<=0){openPricing();return}S.exam={active:true,questions:[],current:0,answers:[],timer:null,seconds:1800};setMode('exam');document.getElementById('exam-res-wrap').innerHTML='';document.getElementById('exam-q-wrap').innerHTML='<div class="qcm-loading"><div class="loader"></div><span>Generation de 40 questions…</span></div>';const all=[];const tops=ETOPICS.sort(()=>Math.random()-0.5).slice(0,5);for(const t of tops){try{const r=await fetch(`${API}/qcm/generate`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic:t,n:8,user_id:S.userId,difficulty:'auto'})});if(r.ok){const d=await r.json();all.push(...d.questions)}}catch(e){}}if(all.length<10){document.getElementById('exam-q-wrap').innerHTML='<div style="color:var(--t2);text-align:center;padding:32px">Serveur indisponible.<br><button onclick="setMode(\'chat\')" style="margin-top:12px;padding:8px 18px;border-radius:50px;border:1px solid var(--gb);background:var(--glass);color:var(--text);cursor:pointer;font-size:12px">Retour</button></div>';S.exam.active=false;return}S.exam.questions=all.sort(()=>Math.random()-0.5).slice(0,40);S.exam.answers=new Array(S.exam.questions.length).fill(null);startET();renderEQ();if(S.plan==='free')S.examFree--;saveProg()}
