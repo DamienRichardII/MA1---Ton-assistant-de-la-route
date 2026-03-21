@@ -4,7 +4,7 @@ import Image from 'next/image';
 
 export const metadata: Metadata = {
   title: 'Code de la Route Gratuit avec IA — MA1 | Révisez avec l\'Intelligence Artificielle',
-  description: 'Révisez le Code de la Route gratuitement avec MA1, l\'assistant IA. QCM adaptatifs, analyse de panneaux par photo, examens blancs chronométrés. 10 questions gratuites par jour.',
+  description: 'Révisez le Code de la Route gratuitement avec MA1, l&apos;assistant IA. QCM adaptatifs, analyse de panneaux par photo, examens blancs chronométrés. 10 questions gratuites par jour.',
   keywords: 'code de la route, QCM code de la route, réviser le code, code de la route gratuit, examen code de la route, IA code de la route, permis de conduire',
   openGraph: {
     title: 'MA1 — Code de la Route avec IA',
@@ -15,15 +15,15 @@ export const metadata: Metadata = {
     siteName: 'MA1',
     images: [{ url: '/ma1-logo.jpeg', width: 512, height: 512, alt: 'MA1 Logo' }],
   },
-  twitter: { card: 'summary_large_image', title: 'MA1 — Code de la Route avec IA', description: 'Réussir son code du premier coup grâce à l\'IA.' },
+  twitter: { card: 'summary_large_image', title: 'MA1 — Code de la Route avec IA', description: 'Réussir son code du premier coup grâce à l&apos;IA.' },
   alternates: { canonical: 'https://ma1.app/landing' },
   robots: { index: true, follow: true },
 };
 
 const FEATURES = [
-  { icon: '💬', title: 'Chat IA Expert', desc: 'Posez n\'importe quelle question sur le Code de la Route. L\'IA vous répond avec les articles officiels Légifrance.' },
+  { icon: '💬', title: 'Chat IA Expert', desc: 'Posez n&apos;importe quelle question sur le Code de la Route. L\'IA vous répond avec les articles officiels Légifrance.' },
   { icon: '📋', title: 'QCM Adaptatifs', desc: 'Des questions générées par IA qui s\'adaptent à votre niveau. 9 thèmes gratuits, difficulté progressive.' },
-  { icon: '📸', title: 'Analyse de Panneaux', desc: 'Prenez un panneau en photo, l\'IA l\'identifie et vous explique sa signification et les règles associées.' },
+  { icon: '📸', title: 'Analyse de Panneaux', desc: 'Prenez un panneau en photo, l&apos;IA l\'identifie et vous explique sa signification et les règles associées.' },
   { icon: '📝', title: 'Examens Blancs', desc: '40 questions, 30 minutes, conditions réelles. Seuil de réussite à 80% comme le vrai examen.' },
   { icon: '📅', title: 'Plan 30 Jours', desc: 'Un programme de révision structuré jour par jour. Plus besoin de chercher par où commencer.' },
   { icon: '🎯', title: 'Indicateur de Readiness', desc: 'MA1 vous dit quand vous êtes prêt pour l\'examen. Fini le stress de ne pas savoir.' },
@@ -38,15 +38,15 @@ const STATS = [
 
 const PRICING = [
   { name: 'Gratuit', price: '0€', period: '', features: ['10 questions IA / jour', 'QCM adaptatifs', '1 examen blanc / mois', 'Analyse de panneaux', 'Plan 30 jours'], cta: 'Commencer gratuitement', href: '/', featured: false },
-  { name: 'Premium', price: '10€', period: '/mois', features: ['Questions illimitées', 'Tous les thèmes', 'Examens blancs illimités', 'Streaming temps réel', '7 jours d\'essai gratuit'], cta: '7 jours gratuits', href: '/?upgrade=premium', featured: true },
+  { name: 'Premium', price: '10€', period: '/mois', features: ['Questions illimitées', 'Tous les thèmes', 'Examens blancs illimités', 'Streaming temps réel', '7 jours d&apos;essai gratuit'], cta: '7 jours gratuits', href: '/?upgrade=premium', featured: true },
   { name: 'Premium Annuel', price: '79€', period: '/an', features: ['Tout Premium', '2 mois offerts', '6,58€/mois au lieu de 10€', 'Économisez 41€', 'Accès garanti 12 mois'], cta: 'Économiser 41€', href: '/?upgrade=annual', featured: false },
   { name: 'Auto-École', price: '200€', period: '/mois', features: ['Tout Premium', 'Dashboard moniteur', 'Suivi de 30 élèves', 'Export PDF progression', 'White-label personnalisable'], cta: 'Contacter les ventes', href: '/dashboard', featured: false },
 ];
 
 const FAQ = [
   { q: 'MA1 est-il vraiment gratuit ?', a: 'Oui. Le plan gratuit offre 10 questions IA par jour, des QCM adaptatifs sur 9 thèmes, et 1 examen blanc par mois. Aucune carte bancaire requise.' },
-  { q: 'Comment fonctionne l\'IA ?', a: 'MA1 utilise une intelligence artificielle de dernière génération entraînée sur les textes officiels du Code de la Route français (Légifrance). Elle génère des QCM adaptés à votre niveau et répond à vos questions avec les articles de loi.' },
-  { q: 'MA1 remplace-t-il une auto-école ?', a: 'Non. MA1 est un complément pédagogique pour réviser le Code de la Route. Il ne remplace pas la formation obligatoire en auto-école. Nous recommandons de l\'utiliser en parallèle de vos cours.' },
+  { q: 'Comment fonctionne l&apos;IA ?', a: 'MA1 utilise une intelligence artificielle de dernière génération entraînée sur les textes officiels du Code de la Route français (Légifrance). Elle génère des QCM adaptés à votre niveau et répond à vos questions avec les articles de loi.' },
+  { q: 'MA1 remplace-t-il une auto-école ?', a: 'Non. MA1 est un complément pédagogique pour réviser le Code de la Route. Il ne remplace pas la formation obligatoire en auto-école. Nous recommandons de l&apos;utiliser en parallèle de vos cours.' },
   { q: 'Mes données sont-elles protégées ?', a: 'Oui. MA1 est conforme au RGPD. Vos données restent sur votre appareil (localStorage). Vous pouvez exporter ou supprimer vos données à tout moment depuis les paramètres.' },
   { q: 'Puis-je utiliser MA1 hors connexion ?', a: 'Partiellement. Les QCM déjà chargés sont disponibles hors ligne. Le chat IA nécessite une connexion internet.' },
   { q: 'Comment fonctionne l\'essai gratuit Premium ?', a: '7 jours d\'accès complet sans engagement. Un email de rappel est envoyé 48h avant la fin. Vous pouvez annuler à tout moment.' },
