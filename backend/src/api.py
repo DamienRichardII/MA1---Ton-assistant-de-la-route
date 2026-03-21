@@ -177,7 +177,6 @@ REVISION_PLAN = [
 ]
 
 app = FastAPI(title="MA1 Code de la Route API", version="8.0.0")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 if HAS_LIMITER:
     from slowapi import _rate_limit_exceeded_handler
     from slowapi.errors import RateLimitExceeded
@@ -189,6 +188,8 @@ try:
     app.add_middleware(TimingMiddleware)
 except ImportError:
     pass
+# CORS must be added LAST so it wraps outermost (processes first)
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"], expose_headers=["*"])
 
 if PUBLIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(PUBLIC_DIR)), name="static")
