@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 import { showXPToast } from '@/components/gamification/XPToast';
 
 export function AuthModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { setUser } = useStore();
+  const { setUser, setUserRole } = useStore();
   const [mode, setMode] = useState<'login'|'register'>('login');
   const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
@@ -25,12 +25,12 @@ export function AuthModal({ open, onClose }: { open: boolean; onClose: () => voi
         if (!email||!pw||pw.length<6) { setErr('Min. 6 caractères'); setBusy(false); return; }
         if (birth && yr-parseInt(birth)<15) { setErr('Vous devez avoir au moins 15 ans'); setBusy(false); return; }
         const d = await api.register(email, pw, name, birth?parseInt(birth):undefined);
-        setUser({userId:d.user_id, token:d.token, name:name||email.split('@')[0], plan:d.plan});
+        setUser({userId:d.user_id, token:d.token, name:name||email.split('@')[0], plan:d.plan, role:'apprenti'}); setUserRole('apprenti');
         localStorage.setItem('ma1_token', d.token);
         showXPToast('+20 XP · Inscription');
       } else {
         const d = await api.login(email, pw);
-        setUser({userId:d.user_id, token:d.token, name:d.name||email.split('@')[0], plan:d.plan});
+        setUser({userId:d.user_id, token:d.token, name:d.name||email.split('@')[0], plan:d.plan, role:d.role||'apprenti'}); setUserRole(d.role==='moniteur'?'moniteur':'apprenti');
         localStorage.setItem('ma1_token', d.token);
       }
       onClose();
