@@ -673,9 +673,9 @@ html[data-theme="light"] .upgrade-btn{background:linear-gradient(135deg,#0071E3,
 html[data-theme="light"] .ob-start{background:linear-gradient(135deg,#0071E3,#2997FF) !important;box-shadow:0 4px 24px rgba(0,113,227,0.3) !important}
 html[data-theme="light"] .auth-submit{background:linear-gradient(135deg,#0071E3,#2997FF) !important}
 html[data-theme="light"] .next-q-btn{background:linear-gradient(135deg,#0071E3,#2997FF) !important}
-html[data-theme="light"] body{background:#F5F5F7 !important}
-html[data-theme="light"] .onboarding{background:#F5F5F7 !important}
-html[data-theme="light"] .pos-test{background:#F5F5F7 !important}
+html[data-theme="light"] body{background:#FFFAFA !important}
+html[data-theme="light"] .onboarding{background:#FFFAFA !important}
+html[data-theme="light"] .pos-test{background:#FFFAFA !important}
 
 /* SINGLE NAV BAR - RESPONSIVE */
 @media(max-width:768px){
@@ -791,6 +791,52 @@ html[data-theme="light"] .qcm-results-card{background:rgba(255,255,255,0.8)}
 @keyframes fadeIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
 @media(max-width:640px){.qcr-stats{grid-template-columns:repeat(2,1fr)}}
 
+
+/* ═══ ROAD ANIMATION (light mode) ═══ */
+.road-anim{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0;transition:opacity 0.8s}
+html[data-theme="light"] .road-anim{opacity:0.08}
+.road-svg{width:100%;height:100%}
+.car-right{animation:carRight 8s linear infinite}
+.car-right2{animation:carRight 12s linear infinite;animation-delay:-4s}
+.car-right3{animation:carRight 10s linear infinite;animation-delay:-7s}
+.car-left{animation:carLeft 9s linear infinite}
+.car-left2{animation:carLeft 11s linear infinite;animation-delay:-3s}
+.car-left3{animation:carLeft 7s linear infinite;animation-delay:-6s}
+@keyframes carRight{0%{transform:translateX(-120px)}100%{transform:translateX(calc(100vw + 120px))}}
+@keyframes carLeft{0%{transform:translateX(calc(100vw + 120px))}100%{transform:translateX(-120px)}}
+
+
+/* ═══ POSITIONING RESULTS ═══ */
+.pos-results{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding:24px;max-width:400px;animation:fadeIn 0.4s ease}
+.pos-score-ring{width:100px;height:100px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.pos-score-ring.pass{background:rgba(48,209,88,0.06);border:3px solid rgba(48,209,88,0.3)}
+.pos-score-ring.fail{background:rgba(255,69,58,0.04);border:3px solid rgba(255,69,58,0.2)}
+.pos-stat{padding:10px 4px;border-radius:14px;background:var(--glass);border:0.5px solid var(--gb);text-align:center;backdrop-filter:blur(20px)}
+
+
+/* ═══ MOBILE POSITIONING FIX ═══ */
+.pos-choice{background:var(--glass) !important;border:0.5px solid var(--gb) !important;color:var(--text) !important;border-radius:16px !important;backdrop-filter:blur(20px) !important;-webkit-backdrop-filter:blur(20px) !important}
+.pos-choice:hover,.pos-choice:active{background:var(--teal-d) !important;border-color:var(--teal) !important;color:var(--teal) !important}
+.pos-choice .choice-letter{background:var(--teal-d) !important;color:var(--teal) !important}
+html[data-theme="light"] .pos-choice{background:rgba(255,255,255,0.8) !important;border:1px solid rgba(0,0,0,0.08) !important;color:#1D1D1F !important}
+html[data-theme="light"] .pos-choice:hover,html[data-theme="light"] .pos-choice:active{background:rgba(0,113,227,0.06) !important;border-color:rgba(0,113,227,0.3) !important;color:#0071E3 !important}
+@media(max-width:768px){
+  .pos-choice{padding:14px 16px !important;font-size:14px !important}
+  .pos-choice .choice-letter{width:28px !important;height:28px !important;font-size:13px !important}
+}
+
+
+/* ═══ ADMIN KPIs ═══ */
+.admin-kpi{padding:14px;border-radius:16px;background:var(--glass);border:0.5px solid var(--gb);text-align:center;box-shadow:var(--gsh);backdrop-filter:blur(20px)}
+.admin-kpi-v{font-family:var(--fd);font-size:22px;font-weight:800;letter-spacing:-0.5px}
+.admin-kpi-l{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:0.3px;margin-top:2px}
+.ae-student{display:flex;align-items:center;gap:10px;padding:12px;border-radius:14px;background:var(--glass);border:0.5px solid var(--gb);box-shadow:var(--gsh);backdrop-filter:blur(20px)}
+.ae-badge{padding:4px 10px;border-radius:50px;font-size:10px;font-weight:700}
+.ae-badge.ready{background:rgba(48,209,88,0.08);color:var(--green)}
+.ae-badge.prog{background:rgba(255,159,10,0.08);color:var(--orange)}
+.gauge-step{padding:4px 10px;border-radius:50px;font-size:10px;font-weight:600;background:var(--t4);color:var(--t3)}
+.gauge-step.done{background:var(--teal-d);color:var(--teal)}
+
 </style>
 </head>
 <body>
@@ -831,6 +877,32 @@ html[data-theme="light"] .qcm-results-card{background:rgba(255,255,255,0.8)}
   <span>🔔 Activez les notifications pour ne pas casser votre serie !</span>
   <button class="notify-yes" onclick="requestNotif()">Activer</button>
   <button class="notify-no" onclick="dismissNotif()">Plus tard</button>
+</div>
+
+
+<!-- Road Animation (light mode) -->
+<div class="road-anim" id="road-anim">
+  <svg class="road-svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <!-- Road -->
+    <rect x="0" y="440" width="1920" height="200" fill="#374151" rx="4"/>
+    <!-- Center dashes -->
+    <line x1="0" y1="540" x2="1920" y2="540" stroke="#FCD34D" stroke-width="3" stroke-dasharray="40 30"/>
+    <!-- Lane lines -->
+    <line x1="0" y1="490" x2="1920" y2="490" stroke="#9CA3AF" stroke-width="1" stroke-dasharray="20 20"/>
+    <line x1="0" y1="590" x2="1920" y2="590" stroke="#9CA3AF" stroke-width="1" stroke-dasharray="20 20"/>
+    <!-- Cars going right -->
+    <g class="car-right"><rect x="0" y="500" width="45" height="22" rx="6" fill="#3B82F6"/><rect x="8" y="504" width="12" height="14" rx="2" fill="#93C5FD" opacity="0.6"/><rect x="28" y="504" width="10" height="14" rx="2" fill="#93C5FD" opacity="0.6"/></g>
+    <g class="car-right2"><rect x="0" y="460" width="40" height="20" rx="5" fill="#10B981"/><rect x="7" y="463" width="10" height="14" rx="2" fill="#6EE7B7" opacity="0.6"/></g>
+    <g class="car-right3"><rect x="0" y="505" width="55" height="20" rx="5" fill="#8B5CF6"/><rect x="10" y="508" width="12" height="14" rx="2" fill="#C4B5FD" opacity="0.5"/></g>
+    <!-- Cars going left -->
+    <g class="car-left"><rect x="0" y="555" width="42" height="20" rx="5" fill="#EF4444"/><rect x="22" y="558" width="12" height="14" rx="2" fill="#FCA5A5" opacity="0.6"/></g>
+    <g class="car-left2"><rect x="0" y="600" width="48" height="22" rx="6" fill="#F59E0B"/><rect x="8" y="603" width="10" height="16" rx="2" fill="#FDE68A" opacity="0.5"/><rect x="30" y="603" width="10" height="16" rx="2" fill="#FDE68A" opacity="0.5"/></g>
+    <g class="car-left3"><rect x="0" y="560" width="38" height="18" rx="4" fill="#06B6D4"/></g>
+    <!-- Trees/scenery -->
+    <circle cx="150" cy="390" r="25" fill="#22C55E" opacity="0.15"/><circle cx="400" cy="690" r="30" fill="#22C55E" opacity="0.12"/>
+    <circle cx="700" cy="380" r="20" fill="#22C55E" opacity="0.1"/><circle cx="1100" cy="700" r="28" fill="#22C55E" opacity="0.13"/>
+    <circle cx="1500" cy="395" r="22" fill="#22C55E" opacity="0.11"/><circle cx="1750" cy="685" r="26" fill="#22C55E" opacity="0.14"/>
+  </svg>
 </div>
 
 <!-- Header -->
@@ -895,6 +967,7 @@ html[data-theme="light"] .qcm-results-card{background:rgba(255,255,255,0.8)}
         <button class="tab-btn" id="tab-lb" onclick="setMode('lb')">🏆 Classement</button>
         <button class="tab-btn" id="tab-exam" onclick="startExam()">📝 Examen</button>
         <button class="tab-btn" id="tab-profile" onclick="setMode('profile')">👤 Profil</button>
+        <button class="tab-btn" id="tab-verif" onclick="setMode('verif')">🔧 Vérif. technique</button>
       </div>
       <div class="ai-ind"><div class="ai-p"></div>MA1 IA · En ligne<button class="clear-btn" onclick="clearChat()">Effacer</button></div>
     </div>
@@ -987,6 +1060,28 @@ html[data-theme="light"] .qcm-results-card{background:rgba(255,255,255,0.8)}
       <div class="input-hint"><a href="/legal/cgu.html" target="_blank" style="color:inherit;text-decoration:none">CGU</a> · <a href="/legal/confidentialite.html" target="_blank" style="color:inherit;text-decoration:none">Confidentialite</a> · <a href="/legal/mentions-legales.html" target="_blank" style="color:inherit;text-decoration:none">Mentions legales</a></div>
     </div>
   </div>
+
+    <!-- VERIFICATION TECHNIQUE PANEL -->
+    <div class="verif-panel" id="verif-panel" style="display:none;flex-direction:column;padding:16px;overflow-y:auto;gap:12px">
+      <div style="text-align:center;padding:20px">
+        <div style="font-size:40px;margin-bottom:8px">🔧</div>
+        <h2 style="font-family:var(--fd);font-size:18px;font-weight:800">Vérifications techniques</h2>
+        <p style="color:var(--t2);font-size:12px;margin:8px 0 16px">Questions type examen permis de conduire</p>
+        <div id="verif-content"></div>
+      </div>
+    </div>
+
+    <!-- ADMIN PANEL -->
+    <div class="admin-panel" id="admin-panel" style="display:none;flex-direction:column;padding:16px;overflow-y:auto;gap:12px">
+      <h2 style="font-family:var(--fd);font-size:17px;font-weight:800">🛡️ Admin DamCompany</h2>
+      <div id="admin-content" style="display:flex;flex-direction:column;gap:10px"></div>
+    </div>
+
+    <!-- AUTO-ECOLE ADMIN PANEL -->
+    <div class="ae-admin-panel" id="ae-admin-panel" style="display:none;flex-direction:column;padding:16px;overflow-y:auto;gap:12px">
+      <h2 style="font-family:var(--fd);font-size:17px;font-weight:800">🏫 Admin Auto-École</h2>
+      <div id="ae-content" style="display:flex;flex-direction:column;gap:10px"></div>
+    </div>
 
   <aside class="right-panel">
     <div class="r-card"><h4>📊 Ma progression</h4><div class="score-ring"><div class="score-big" id="rp-pct">0%</div><div class="score-sub">taux de reussite</div></div><div class="mini-stats"><div class="mini-stat"><div class="mini-stat-val" id="rp-total">0</div><div class="mini-stat-lab">Questions</div></div><div class="mini-stat"><div class="mini-stat-val" id="rp-streak">0</div><div class="mini-stat-lab">Serie 🔥</div></div></div><div class="level-pill" id="rp-level">🎓 Debutant</div></div>
@@ -1218,7 +1313,7 @@ function continueQCM(){
 }
 
 /* EXAM */
-async function startExam(){if(S.plan==='free'&&S.examFree<=0){openPricing();return}S.exam={active:true,questions:[],current:0,answers:[],timer:null,seconds:1800};setMode('exam');document.getElementById('exam-res-wrap').innerHTML='';document.getElementById('exam-q-wrap').innerHTML='<div class="qcm-loading"><div class="loader"></div><span>Generation de 40 questions…</span></div>';const all=[];const tops=ETOPICS.sort(()=>Math.random()-0.5).slice(0,5);for(const t of tops){try{const r=await fetch(`${API}/qcm/generate`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic:t,n:8,user_id:S.userId,difficulty:'auto'})});if(r.ok){const d=await r.json();all.push(...d.questions)}}catch(e){}}if(all.length<10){document.getElementById('exam-q-wrap').innerHTML='<div style="color:var(--t2);text-align:center;padding:32px">Serveur indisponible.<br><button onclick="setMode(\'chat\')" style="margin-top:12px;padding:8px 18px;border-radius:50px;border:1px solid var(--gb);background:var(--glass);color:var(--text);cursor:pointer;font-size:12px">Retour</button></div>';S.exam.active=false;return}S.exam.questions=all.sort(()=>Math.random()-0.5).slice(0,40);S.exam.answers=new Array(S.exam.questions.length).fill(null);startET();renderEQ();if(S.plan==='free')S.examFree--;saveProg()}
+async function startExam(){if(S.plan==='free'&&S.examToday>=2){openPricing();return}S.exam={active:true,questions:[],current:0,answers:[],timer:null,seconds:1800};setMode('exam');document.getElementById('exam-res-wrap').innerHTML='';document.getElementById('exam-q-wrap').innerHTML='<div class="qcm-loading"><div class="loader"></div><span>Generation de 40 questions…</span></div>';const all=[];const tops=ETOPICS.sort(()=>Math.random()-0.5).slice(0,5);for(const t of tops){try{const r=await fetch(`${API}/qcm/generate`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic:t,n:8,user_id:S.userId,difficulty:'auto'})});if(r.ok){const d=await r.json();all.push(...d.questions)}}catch(e){}}if(all.length<10){document.getElementById('exam-q-wrap').innerHTML='<div style="color:var(--t2);text-align:center;padding:32px">Serveur indisponible.<br><button onclick="setMode(\'chat\')" style="margin-top:12px;padding:8px 18px;border-radius:50px;border:1px solid var(--gb);background:var(--glass);color:var(--text);cursor:pointer;font-size:12px">Retour</button></div>';S.exam.active=false;return}S.exam.questions=all.sort(()=>Math.random()-0.5).slice(0,40);S.exam.answers=new Array(S.exam.questions.length).fill(null);startET();renderEQ();if(S.plan==='free'){S.examToday++;localStorage.setItem('ma1_exam_today_'+new Date().toISOString().split('T')[0],S.examToday)}saveProg()}
 function startET(){S.exam.timer=setInterval(()=>{S.exam.seconds--;const m=Math.floor(S.exam.seconds/60),s=S.exam.seconds%60;const e=document.getElementById('exam-timer');e.textContent=`${m}:${s.toString().padStart(2,'0')}`;if(S.exam.seconds<=300)e.classList.add('warn');if(S.exam.seconds<=0){clearInterval(S.exam.timer);finishExam()}},1000)}
 function renderEQ(){const q=S.exam.questions[S.exam.current];if(!q)return;document.getElementById('exam-pfill').style.width=(S.exam.current/S.exam.questions.length*100)+'%';document.getElementById('exam-ptxt').textContent=`${S.exam.current+1}/${S.exam.questions.length}`;const w=document.getElementById('exam-q-wrap');const c=document.createElement('div');c.className='question-card';c.innerHTML=`<div class="q-meta"><span class="q-ref">${q.ref||'Examen'}</span><span class="q-num">Q${S.exam.current+1} / ${S.exam.questions.length}</span></div><div class="q-text">${q.question}</div><div class="choices" id="exam-choices"></div>`;w.innerHTML='';w.appendChild(c);const cl=document.getElementById('exam-choices');['A','B','C','D'].forEach((l,i)=>{if(i>=q.choices.length)return;const b=document.createElement('button');b.className='choice';b.innerHTML=`<span class="choice-letter">${l}</span>${q.choices[i]}`;b.onclick=()=>answerEQ(i);cl.appendChild(b)})}
 function answerEQ(sel){const q=S.exam.questions[S.exam.current];S.exam.answers[S.exam.current]=sel;const bs=document.querySelectorAll('#exam-choices .choice');bs.forEach(b=>b.disabled=true);bs[q.answer_index].classList.add('correct');if(sel!==q.answer_index)bs[sel].classList.add('wrong');setTimeout(()=>{S.exam.current++;if(S.exam.current>=S.exam.questions.length)finishExam();else renderEQ()},700)}
@@ -1483,18 +1578,52 @@ function renderPosQ(){
   });
 }
 function finishPositioning(){
-  document.getElementById('pos-test').classList.remove('show');
   localStorage.setItem('ma1_pos_done','1');
+  // Calculate results
+  var total=posAnswers.length, ok=posAnswers.filter(a=>a.correct).length;
+  var rate=total>0?Math.round((ok/total)*100):0;
+  var passed=rate>=60;
+  var level=rate>=75?'avance':rate>=45?'intermediaire':'debutant';
+  var weak=[];var topicStats={};
+  posAnswers.forEach(function(a){
+    if(!topicStats[a.topic])topicStats[a.topic]={ok:0,total:0};
+    topicStats[a.topic].total++;
+    if(a.correct)topicStats[a.topic].ok++;
+  });
+  for(var t in topicStats){if(topicStats[t].ok/topicStats[t].total<0.5)weak.push(t);}
+  // Show results screen
+  var el=document.getElementById('pos-test');
+  el.innerHTML='<div class="pos-results">'+
+    '<div style="font-size:48px">'+(passed?'🎉':'💪')+'</div>'+
+    '<h2 style="font-family:var(--fd);font-size:22px;font-weight:800;margin:8px 0">'+(passed?'Bien joue !':'Courage !')+'</h2>'+
+    '<div class="pos-score-ring '+(passed?'pass':'fail')+'">'+
+      '<div style="font-family:var(--fd);font-size:32px;font-weight:800;color:var(--'+(passed?'green':'red')+');">'+rate+'%</div>'+
+      '<div style="font-size:11px;color:var(--t3)">'+ok+'/'+total+'</div>'+
+    '</div>'+
+    '<div style="padding:10px 16px;border-radius:50px;background:var(--teal-d);color:var(--teal);font-family:var(--fd);font-weight:700;font-size:13px">Niveau : '+level.charAt(0).toUpperCase()+level.slice(1)+'</div>'+
+    (weak.length>0?'<div style="color:var(--t2);font-size:12px;margin-top:4px">Points faibles : '+weak.join(', ')+'</div>':'')+
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;max-width:300px;margin-top:8px">'+
+      '<div class="pos-stat"><div style="font-family:var(--fd);font-size:18px;font-weight:800;color:var(--green)">'+ok+'</div><div style="font-size:9px;color:var(--t3)">CORRECTES</div></div>'+
+      '<div class="pos-stat"><div style="font-family:var(--fd);font-size:18px;font-weight:800;color:var(--red)">'+(total-ok)+'</div><div style="font-size:9px;color:var(--t3)">ERREURS</div></div>'+
+      '<div class="pos-stat"><div style="font-family:var(--fd);font-size:18px;font-weight:800;color:var(--purple)">+15</div><div style="font-size:9px;color:var(--t3)">XP</div></div>'+
+    '</div>'+
+    '<button onclick="closePosResults()" style="margin-top:16px;padding:12px 32px;border-radius:50px;border:none;background:linear-gradient(135deg,var(--teal),var(--sky));color:#fff;font-family:var(--fd);font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 4px 20px rgba(10,132,255,0.3)">Commencer les revisions →</button>'+
+  '</div>';
   // Send to backend
-  fetch(`${API}/test/positionnement?user_id=${S.userId}`,{
+  S.profile.level=level;S.profile.weak_topics=weak;
+  fetch(API+'/test/positionnement?user_id='+S.userId,{
     method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify(posAnswers)
-  }).then(r=>r.json()).then(d=>{
+  }).then(function(r){return r.json()}).then(function(d){
     if(d.level)S.profile.level=d.level;
     if(d.weak_topics)S.profile.weak_topics=d.weak_topics;
     updateRP();saveProg();
-    addXP(15,'Test de positionnement');
-  }).catch(()=>{});
+  }).catch(function(){});
+  addXP(15,'Test de positionnement');
+}
+function closePosResults(){
+  document.getElementById('pos-test').classList.remove('show');
+  document.getElementById('pos-test').innerHTML='';
 }
 function skipPositioning(){
   document.getElementById('pos-test').classList.remove('show');
@@ -1818,7 +1947,7 @@ function patchedSetMode(mode) {
   if (mode === 'profile') {
     updateProfilePanel();
     // Hide other panels
-    ['messages','qcm-panel','vision-panel','veille-panel','plan30-panel','lb-panel','dash-panel','readiness-panel','ref-panel'].forEach(function(id) {
+    ['messages','qcm-panel','vision-panel','veille-panel','plan30-panel','lb-panel','dash-panel','readiness-panel','ref-panel','verif-panel','admin-panel','ae-admin-panel'].forEach(function(id) {
       var el = document.getElementById(id); if (el) el.style.display = 'none';
     });
     document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
@@ -1834,9 +1963,16 @@ function patchedSetMode(mode) {
   var origSetMode = window.setMode;
   window.setMode = function(mode) {
     document.getElementById('profile-panel').style.display = mode === 'profile' ? 'flex' : 'none';
+    document.getElementById('verif-panel').style.display = mode === 'verif' ? 'flex' : 'none';
+    document.getElementById('admin-panel').style.display = mode === 'admin' ? 'flex' : 'none';
+    document.getElementById('ae-admin-panel').style.display = mode === 'ae-admin' ? 'flex' : 'none';
+    if(mode==='verif')loadVerifPanel();
+    if(mode==='admin')loadAdminPanel();
+    if(mode==='ae-admin')loadAEPanel();
+    if(mode==='profile'){try{updateProfilePanelV2();}catch(e){}}
     if (mode === 'profile') {
       updateProfilePanel();
-      ['messages','qcm-panel','vision-panel','veille-panel','plan30-panel','lb-panel','dash-panel','readiness-panel','ref-panel'].forEach(function(id) {
+      ['messages','qcm-panel','vision-panel','veille-panel','plan30-panel','lb-panel','dash-panel','readiness-panel','ref-panel','verif-panel','admin-panel','ae-admin-panel'].forEach(function(id) {
         var el = document.getElementById(id); if (el) el.style.display = 'none';
       });
       document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
@@ -1852,6 +1988,95 @@ function patchedSetMode(mode) {
 var _origAddXP = window.addXP;
 if (_origAddXP) {
   window.addXP = function(n) { _origAddXP(n); try { updateProfilePanel(); } catch(e) {} };
+}
+
+
+/* ═══ VERIFICATION TECHNIQUE ═══ */
+var VERIF_QUESTIONS = [
+  {q:"Montrez-moi la commande du klaxon.",answer:"Le klaxon se situe generalement au centre du volant.","cat":"Interieur"},
+  {q:"Montrez-moi la commande des feux de detresse.",answer:"Le bouton triangle rouge sur le tableau de bord active les feux de detresse (warnings).","cat":"Securite"},
+  {q:"Montrez-moi la commande de reglage des retroviseurs electriques.",answer:"Le bouton de reglage se trouve sur la portiere, avec un selecteur gauche/droite.","cat":"Interieur"},
+  {q:"Verifiez le niveau du liquide de frein.",answer:"Le reservoir de liquide de frein se trouve sous le capot, cote conducteur. Le niveau doit etre entre MIN et MAX.","cat":"Sous capot"},
+  {q:"Montrez-moi ou vous verifiez le niveau d'huile moteur.",answer:"La jauge d'huile se trouve sous le capot. Tirez-la, essuyez, replongez, puis verifiez entre les reperes MIN et MAX.","cat":"Sous capot"},
+  {q:"Montrez-moi la commande du lave-glace.",answer:"La commande du lave-glace se trouve sur la manette droite du volant. Tirez-la vers vous.","cat":"Interieur"},
+  {q:"Comment verifiez-vous l'etat des pneus ?",answer:"Verifiez la profondeur des rainures (minimum 1.6mm), l'absence de coupures, hernies, et la pression recommandee.","cat":"Exterieur"},
+  {q:"Montrez-moi la commande des feux de croisement.",answer:"La commande se trouve sur la manette gauche du volant. Tournez-la d'un cran.","cat":"Interieur"},
+  {q:"Comment verifiez-vous le bon fonctionnement des feux stop ?",answer:"Appuyez sur la pedale de frein et demandez a quelqu'un de verifier, ou utilisez un reflet.","cat":"Exterieur"},
+  {q:"Ou se trouve le triangle de pre-signalisation ?",answer:"Le triangle de pre-signalisation se trouve generalement dans le coffre. Il doit etre place a 30m minimum du vehicule.","cat":"Securite"},
+];
+var verifIdx=0;
+function loadVerifPanel(){
+  var el=document.getElementById('verif-content');
+  if(S.plan==='free'){
+    el.innerHTML='<div style="padding:24px;text-align:center"><div style="font-size:32px;margin-bottom:8px">🔒</div><p style="color:var(--t2);font-size:13px;margin-bottom:16px">Les verifications techniques sont disponibles en version Premium.</p><button onclick="openPricing()" style="padding:10px 24px;border-radius:50px;border:none;background:linear-gradient(135deg,var(--teal),var(--sky));color:#fff;font-family:var(--fd);font-weight:700;font-size:13px;cursor:pointer;box-shadow:0 4px 16px rgba(10,132,255,0.25)">Passer Premium</button></div>';
+    return;
+  }
+  verifIdx=0;renderVerifQ();
+}
+function renderVerifQ(){
+  if(verifIdx>=VERIF_QUESTIONS.length)verifIdx=0;
+  var q=VERIF_QUESTIONS[verifIdx];
+  var el=document.getElementById('verif-content');
+  el.innerHTML='<div style="max-width:500px;margin:0 auto"><div style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:50px;background:var(--teal-d);color:var(--teal);font-size:10px;font-weight:700;margin-bottom:12px">'+q.cat+' · Q'+(verifIdx+1)+'/'+VERIF_QUESTIONS.length+'</div><div style="font-family:var(--fd);font-size:16px;font-weight:700;margin-bottom:16px;line-height:1.5">'+q.q+'</div><div id="verif-answer" style="display:none;padding:14px;border-radius:16px;background:var(--glass);border:0.5px solid var(--gb);box-shadow:var(--gsh);margin-bottom:12px"><div style="font-size:13px;color:var(--text);line-height:1.6">'+q.answer+'</div></div><div style="display:flex;gap:8px;justify-content:center"><button onclick="document.getElementById(\'verif-answer\').style.display=\'block\'" style="padding:10px 20px;border-radius:50px;border:0.5px solid var(--gb);background:var(--glass);color:var(--text);font-size:12px;font-weight:600;cursor:pointer">Voir la reponse</button><button onclick="verifIdx++;renderVerifQ()" style="padding:10px 20px;border-radius:50px;border:none;background:linear-gradient(135deg,var(--teal),var(--sky));color:#fff;font-size:12px;font-weight:700;cursor:pointer">Suivante →</button></div></div>';
+}
+
+/* ═══ ADMIN PANEL ═══ */
+function loadAdminPanel(){
+  var el=document.getElementById('admin-content');
+  el.innerHTML='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">'+
+    '<div class="admin-kpi"><div class="admin-kpi-v" id="adm-users">0</div><div class="admin-kpi-l">Utilisateurs</div></div>'+
+    '<div class="admin-kpi"><div class="admin-kpi-v" id="adm-premium">0</div><div class="admin-kpi-l">Premium</div></div>'+
+    '<div class="admin-kpi"><div class="admin-kpi-v" id="adm-ae">0</div><div class="admin-kpi-l">Auto-ecoles</div></div>'+
+  '</div>'+
+  '<div class="admin-kpi" style="grid-column:span 3"><div class="admin-kpi-l">Systeme</div><div id="adm-health" style="font-size:11px;color:var(--t2);margin-top:4px">Chargement...</div></div>'+
+  '<button onclick="triggerCron()" style="padding:10px 20px;border-radius:12px;border:0.5px solid var(--gb);background:var(--glass);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;backdrop-filter:blur(20px)">⏰ Trigger cron daily</button>';
+  // Fetch health
+  fetch(API+'/health').then(function(r){return r.json()}).then(function(d){
+    document.getElementById('adm-health').innerHTML='Version: <b>'+d.version+'</b> | RAG: '+(d.rag?'✅':'❌')+' | Supabase: '+(d.supabase?'✅':'⚠️')+' | Stripe: '+(d.stripe?'✅':'❌')+' | API Key: '+(d.api_key?'✅':'❌');
+  }).catch(function(){document.getElementById('adm-health').textContent='Backend offline';});
+  fetch(API+'/analytics/summary?days=30').then(function(r){return r.json()}).then(function(d){
+    document.getElementById('adm-users').textContent=d.total_users||0;
+  }).catch(function(){});
+}
+function triggerCron(){
+  fetch(API+'/cron/daily',{method:'POST'}).then(function(r){return r.json()}).then(function(d){alert(JSON.stringify(d,null,2))}).catch(function(e){alert('Erreur: '+e)});
+}
+
+/* ═══ AUTO-ECOLE ADMIN ═══ */
+function loadAEPanel(){
+  var el=document.getElementById('ae-content');
+  el.innerHTML='<div style="text-align:center;padding:16px"><div style="font-size:32px">🏫</div><p style="color:var(--t2);font-size:12px;margin:8px 0">Dashboard moniteur</p></div>';
+  fetch(API+'/dashboard/'+S.userId).then(function(r){return r.json()}).then(function(d){
+    var h='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">'+
+      '<div class="admin-kpi"><div class="admin-kpi-v">'+d.total_students+'</div><div class="admin-kpi-l">Eleves</div></div>'+
+      '<div class="admin-kpi"><div class="admin-kpi-v">'+d.avg_success_rate+'%</div><div class="admin-kpi-l">Reussite moy.</div></div>'+
+      '<div class="admin-kpi"><div class="admin-kpi-v">'+d.ready_for_exam+'</div><div class="admin-kpi-l">Prets examen</div></div>'+
+      '<div class="admin-kpi"><div class="admin-kpi-v">'+(d.students||[]).reduce(function(a,s){return a+s.score_total},0)+'</div><div class="admin-kpi-l">Questions</div></div>'+
+    '</div>';
+    (d.students||[]).forEach(function(s){
+      h+='<div class="ae-student"><div style="flex:1"><div style="font-weight:600;font-size:13px">'+(s.name||s.user_id)+'</div><div style="font-size:10px;color:var(--t3);margin-top:2px">Jour '+s.plan_day+'/30 · '+s.xp+' XP · '+s.level+(s.weak_topics&&s.weak_topics.length?' · Faible: '+s.weak_topics.join(', '):'')+'</div></div><div style="font-family:var(--fd);font-weight:800;font-size:14px">'+s.success_rate+'%</div><div class="ae-badge '+(s.readiness>=75?'ready':'prog')+'">'+(s.readiness>=75?'Pret':s.readiness+'%')+'</div></div>';
+    });
+    if(!d.students||d.students.length===0)h+='<div style="text-align:center;padding:16px;color:var(--t3);font-size:12px">Aucun eleve inscrit.</div>';
+    el.innerHTML=h;
+  }).catch(function(){el.innerHTML='<div style="text-align:center;color:var(--t3);font-size:12px">Connectez-vous en tant qu\'auto-ecole.</div>';});
+}
+
+/* ═══ PROFILE PANEL — Update with driving license gauge ═══ */
+function updateProfilePanelV2(){
+  if(typeof updateProfilePanel==='function')updateProfilePanel();
+  // Add driving license gauge if not present
+  var pp=document.getElementById('profile-panel');
+  if(!pp)return;
+  if(document.getElementById('driving-gauge'))return;
+  var gaugeEl=document.createElement('div');gaugeEl.id='driving-gauge';gaugeEl.className='profile-section';
+  var total=S.qcm.correct+S.qcm.wrong;
+  var rate=total>0?Math.round((S.qcm.correct/total)*100):0;
+  var codeReady=rate>=70&&total>=100;
+  var pct=Math.min(100,Math.round((Math.min(rate,100)*0.3)+(Math.min(total,200)/200*30)+(Math.min(S.streak,7)/7*10)+((S.examsTaken||0)>0?15:0)+(codeReady?15:0)));
+  gaugeEl.innerHTML='<h3 class="profile-section-title">🚗 Progression Permis</h3><div style="padding:14px;border-radius:16px;background:var(--glass);border:0.5px solid var(--gb);box-shadow:var(--gsh);backdrop-filter:blur(20px)"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-family:var(--fd);font-size:13px;font-weight:700;color:var(--text)">Objectif : Permis de conduire</span><span style="font-size:11px;color:var(--t3)">'+pct+'%</span></div><div style="height:8px;border-radius:4px;background:var(--t4);overflow:hidden"><div style="height:100%;width:'+pct+'%;border-radius:4px;background:linear-gradient(90deg,var(--teal),var(--sky),var(--green));transition:width 0.5s"></div></div><div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap"><div class="gauge-step '+(total>=1?'done':'')+'">📚 Revision</div><div class="gauge-step '+(codeReady?'done':'')+'">📝 Code</div><div class="gauge-step">🚗 Conduite</div><div class="gauge-step">🎓 Permis</div></div></div>';
+  // Insert after stats grid
+  var statsGrid=pp.querySelector('.profile-stats-grid');
+  if(statsGrid&&statsGrid.nextSibling){pp.insertBefore(gaugeEl,statsGrid.nextSibling);}
 }
 
 </script>

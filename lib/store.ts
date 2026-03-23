@@ -21,10 +21,6 @@ export interface AppState {
   userName: string;
   plan: 'free' | 'premium' | 'autoecole';
   isLoggedIn: boolean;
-  userRole: 'apprenti' | 'moniteur';
-
-  // UI
-  lightMode: boolean;
 
   // Profile
   profile: Profile;
@@ -46,12 +42,8 @@ export interface AppState {
   lastDay: string;
   badges: Record<string, boolean>;
 
-  // Exam usage tracking
-  examUsedToday: number;
-  examLastDate: string;
-
   // Actions
-  setUser: (data: { userId: string; token: string; name: string; plan: string; role?: string }) => void;
+  setUser: (data: { userId: string; token: string; name: string; plan: string }) => void;
   logout: () => void;
   setProfile: (profile: Partial<Profile>) => void;
   incrementQuestion: () => void;
@@ -59,14 +51,9 @@ export interface AppState {
   addXP: (amount: number) => void;
   setTopic: (topic: string) => void;
   setPlan: (plan: 'free' | 'premium' | 'autoecole') => void;
-  toggleLightMode: () => void;
-  setUserRole: (role: 'apprenti' | 'moniteur') => void;
-  incrementExamUsed: () => void;
-  canUseExam: () => boolean;
 }
 
 const generateUserId = () => 'u_' + Math.random().toString(36).slice(2, 10);
-const todayStr = () => new Date().toISOString().slice(0, 10);
 
 export const useStore = create<AppState>()(
   persist(
@@ -76,8 +63,6 @@ export const useStore = create<AppState>()(
       userName: '',
       plan: 'free',
       isLoggedIn: false,
-      userRole: 'apprenti',
-      lightMode: false,
       profile: {
         level: 'debutant', score_total: 0, score_correct: 0,
         weak_topics: [], strong_topics: [], theme_scores: {},
@@ -87,20 +72,17 @@ export const useStore = create<AppState>()(
       topic: 'vitesse',
       qcmCorrect: 0, qcmWrong: 0, qcmStreak: 0, qcmTotal: 0,
       xp: 0, streakDays: 0, lastDay: '', badges: {},
-      examUsedToday: 0, examLastDate: '',
 
       setUser: (data) => set({
         userId: data.userId, token: data.token,
         userName: data.name, plan: data.plan as any,
         isLoggedIn: true,
-        userRole: (data.role === 'moniteur' ? 'moniteur' : 'apprenti') as any,
         qMax: data.plan === 'free' ? 10 : 999,
       }),
 
       logout: () => set({
         token: null, userName: '', plan: 'free',
         isLoggedIn: false, userId: generateUserId(), qMax: 10,
-        userRole: 'apprenti',
       }),
 
       setProfile: (profile) => set((state) => ({
@@ -120,25 +102,7 @@ export const useStore = create<AppState>()(
       addXP: (amount) => set((state) => ({ xp: state.xp + amount })),
       setTopic: (topic) => set({ topic }),
       setPlan: (plan) => set({ plan, qMax: plan === 'free' ? 10 : 999 }),
-      toggleLightMode: () => set((state) => ({ lightMode: !state.lightMode })),
-      setUserRole: (role) => set({ userRole: role }),
-
-      incrementExamUsed: () => set((state) => {
-        const today = todayStr();
-        if (state.examLastDate !== today) {
-          return { examUsedToday: 1, examLastDate: today };
-        }
-        return { examUsedToday: state.examUsedToday + 1 };
-      }),
-
-      canUseExam: () => {
-        const state = get();
-        if (state.plan !== 'free') return true;
-        const today = todayStr();
-        if (state.examLastDate !== today) return true;
-        return state.examUsedToday < 2;
-      },
     }),
-    { name: 'ma1-store-v9' }
+    { name: 'ma1-store-v8' }
   )
 );
