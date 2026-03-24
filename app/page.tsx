@@ -1,5 +1,5 @@
-'use client';
-import { ChatPanel } from '@/components/chat/ChatPanel';
+import { redirect } from 'next/navigation';
+
 export default function HomePage() {
-  return <ChatPanel />;
+  redirect('/index-standalone.html');
 }
