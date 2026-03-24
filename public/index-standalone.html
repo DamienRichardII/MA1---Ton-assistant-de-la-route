@@ -1182,7 +1182,7 @@ html[data-theme="light"] .pos-choice:hover,html[data-theme="light"] .pos-choice:
 
 /* ════════════════ STATE ════════════════ */
 const API=window.location.hostname==='localhost'||window.location.hostname==='127.0.0.1'?'http://localhost:8000':'';
-const S={mode:'chat',topic:'vitesse',plan:'free',userId:'u_'+Math.random().toString(36).slice(2,10),loading:false,history:[],qUsed:0,qMax:10,xp:0,streakDays:0,lastDay:'',examFree:1,qcm:{correct:0,wrong:0,streak:0,total:0,current:0,questions:[]},exam:{active:false,questions:[],current:0,answers:[],timer:null,seconds:1800},profile:{level:'debutant',score_correct:0,score_total:0,weak_topics:[],theme_scores:{}},badges:{first:false,streak5:false,streak10:false,q50:false,q100:false,exam:false,perfect:false}};
+const S={mode:'chat',topic:'vitesse',plan:'free',userId:'u_'+Math.random().toString(36).slice(2,10),loading:false,history:[],qUsed:0,qMax:10,xp:0,streakDays:0,lastDay:'',examFree:1,examToday:0,qcm:{correct:0,wrong:0,streak:0,total:0,current:0,questions:[]},exam:{active:false,questions:[],current:0,answers:[],timer:null,seconds:1800},profile:{level:'debutant',score_correct:0,score_total:0,weak_topics:[],theme_scores:{}},badges:{first:false,streak5:false,streak10:false,q50:false,q100:false,exam:false,perfect:false}};
 const TIPS=[{t:'🛣️ Autoroute',c:'130 km/h sec · 110 km/h pluie · 50 km/h brouillard < 50m.'},{t:'⚠️ Priorite a droite',c:'Sans signalisation : toujours ceder le passage a droite.'},{t:'📏 Distance de securite',c:'Minimum 2 secondes avec le vehicule devant.'},{t:'🍺 Alcool',c:'Max 0,5 g/L · 0,2 g/L en probatoire.'},{t:'💡 Feux de croisement',c:'Obligatoires la nuit, en tunnel, sous la pluie.'},{t:'📱 Telephone',c:'Interdit en main. 135€ + 3 pts.'},{t:'🌱 Eco-conduite',c:'Anticipez les freinages, regime optimal.'},{t:'🅿️ Stationnement',c:'5m avant passage pieton, 12m avant arret de bus.'}];
 const ETOPICS=['vitesse','signalisation','priorite','alcool','permis','autoroute','stationnement','securite','premiers_secours'];
 
@@ -1207,7 +1207,7 @@ function updateBadges(){Object.entries(S.badges).forEach(([k,v])=>{const e=docum
 function fireConf(n=30){const c=document.getElementById('confetti');c.innerHTML='';const cols=['#3a9db0','#7ec8e3','#2ed573','#e8b84d','#ffa502','#a55eea','#ff4757'];for(let i=0;i<n;i++){const p=document.createElement('div');p.className='conf';p.style.left=Math.random()*100+'%';p.style.animationDelay=Math.random()*0.5+'s';p.style.animationDuration=(2+Math.random()*2)+'s';p.style.backgroundColor=cols[Math.floor(Math.random()*cols.length)];p.style.borderRadius=Math.random()>0.5?'50%':'2px';const sz=(4+Math.random()*6)+'px';p.style.width=sz;p.style.height=sz;c.appendChild(p)}setTimeout(()=>c.innerHTML='',4000)}
 
 /* PROGRESS */
-function loadProg(){try{const s=localStorage.getItem('ma1_v7');if(s){const d=JSON.parse(s);S.qcm.correct=d.c||0;S.qcm.wrong=d.w||0;S.qcm.streak=d.s||0;S.qcm.total=d.t||0;S.profile=d.p||S.profile;S.xp=d.xp||0;S.streakDays=d.sd||0;S.lastDay=d.ld||'';S.badges=d.b||S.badges;S.examFree=d.ef??1;updateRP()}}catch(e){}}
+function loadProg(){try{const s=localStorage.getItem('ma1_v7');if(s){const d=JSON.parse(s);S.qcm.correct=d.c||0;S.qcm.wrong=d.w||0;S.qcm.streak=d.s||0;S.qcm.total=d.t||0;S.profile=d.p||S.profile;S.xp=d.xp||0;S.streakDays=d.sd||0;S.lastDay=d.ld||'';S.badges=d.b||S.badges;S.examFree=d.ef??1;updateRP()}}catch(e){}try{S.examToday=parseInt(localStorage.getItem('ma1_exam_today_'+new Date().toISOString().split('T')[0])||'0')}catch(e){}}
 function saveProg(){try{localStorage.setItem('ma1_v7',JSON.stringify({c:S.qcm.correct,w:S.qcm.wrong,s:S.qcm.streak,t:S.qcm.total,p:S.profile,xp:S.xp,sd:S.streakDays,ld:S.lastDay,b:S.badges,ef:S.examFree}))}catch(e){}}
 
 /* MODE */
@@ -1249,7 +1249,7 @@ async function loadQCM(topic){
     if(data.profile_level)S.profile.level=data.profile_level;
     renderQ();
   }catch(e){l.style.display='none';w.innerHTML=`<div style="color:var(--t2);text-align:center;padding:32px">⚙️ Mode hors-ligne<br><button onclick="loadQCM('${topic}')" style="margin-top:12px;padding:8px 18px;border-radius:50px;border:1px solid var(--gb);background:var(--glass);color:var(--text);cursor:pointer;font-size:12px">Reessayer</button></div>`}
-}}
+}
 function regenQCM(){loadQCM(S.topic)}
 function renderQ(){const w=document.getElementById('question-wrap');const q=S.qcm.questions[S.qcm.current];if(!q)return;const c=document.createElement('div');c.className='question-card';c.innerHTML=`<div class="q-meta"><span class="q-ref">${q.ref||'Code de la Route'}</span><span class="q-num">Q${S.qcm.current+1} / ${S.qcm.questions.length}</span></div><div class="q-text">${q.question}</div><div class="choices" id="choices-list"></div><div class="explanation" id="expl">${q.explanation||''}</div><button class="next-q-btn" id="next-q" onclick="nextQ()">Suivante →</button>`;w.innerHTML='';w.appendChild(c);const cl=document.getElementById('choices-list');['A','B','C','D'].forEach((l,i)=>{if(i>=q.choices.length)return;const b=document.createElement('button');b.className='choice';b.innerHTML=`<span class="choice-letter">${l}</span>${q.choices[i]}`;b.onclick=()=>answerQ(i);cl.appendChild(b)})}
 async function answerQ(sel){if(!S.qcm.questions.length)return;const q=S.qcm.questions[S.qcm.current];const bs=document.querySelectorAll('.choice');bs.forEach(b=>b.disabled=true);const ok=sel===q.answer_index;bs[q.answer_index].classList.add('correct');if(!ok)bs[sel].classList.add('wrong');if(ok){S.qcm.correct++;S.qcm.streak++;addXP(10,'Bonne reponse')}else{S.qcm.wrong++;S.qcm.streak=0}S.qcm.total++;recAct();document.getElementById('expl')?.classList.add('show');document.getElementById('next-q')?.classList.add('show');document.getElementById('sc-ok').textContent=S.qcm.correct;document.getElementById('sc-bad').textContent=S.qcm.wrong;chkBadges();try{const r=await fetch(`${API}/qcm/result`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:S.userId,topic:S.topic,correct:ok})});if(r.ok){const d=await r.json();if(d.profile){S.profile=d.profile;updateRP()}}}catch(e){}updateRP();saveProg()}
@@ -1939,24 +1939,6 @@ function updateProfilePanel() {
     if (el) { el.classList.toggle('unlocked', badges[id]); el.classList.toggle('locked', !badges[id]); }
   }
 }
-
-// Hook into setMode to show/hide profile
-var _origSetMode = typeof setMode === 'function' ? setMode : null;
-function patchedSetMode(mode) {
-  document.getElementById('profile-panel').style.display = mode === 'profile' ? 'flex' : 'none';
-  if (mode === 'profile') {
-    updateProfilePanel();
-    // Hide other panels
-    ['messages','qcm-panel','vision-panel','veille-panel','plan30-panel','lb-panel','dash-panel','readiness-panel','ref-panel','verif-panel','admin-panel','ae-admin-panel'].forEach(function(id) {
-      var el = document.getElementById(id); if (el) el.style.display = 'none';
-    });
-    document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
-    var tb = document.getElementById('tab-profile'); if (tb) tb.classList.add('active');
-    var ib = document.getElementById('input-area'); if (ib) ib.style.display = 'none';
-  }
-  if (_origSetMode && mode !== 'profile') _origSetMode(mode);
-}
-
 
 // Override setMode globally
 (function() {
