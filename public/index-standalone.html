@@ -439,30 +439,19 @@
 
 /* THEME VARIABLES */
 html[data-theme="light"] {
-  --navy:#F5F5F7;--navy2:#FFFFFF;--navy3:#E8E8ED;
-  --glass:rgba(255,255,255,0.72);--glass-h:rgba(255,255,255,0.82);--glass-a:rgba(255,255,255,0.92);
-  --gb:rgba(0,0,0,0.06);--gb2:rgba(0,0,0,0.1);--gs:rgba(255,255,255,0.9);
-  --text:#1D1D1F;--t2:rgba(29,29,31,0.55);--t3:rgba(29,29,31,0.3);--t4:rgba(29,29,31,0.12);
-  --gsh:0 2px 20px rgba(0,0,0,0.06),0 0.5px 0 rgba(255,255,255,0.8) inset;
-  --gsh-lg:0 8px 40px rgba(0,0,0,0.08),0 0.5px 0 rgba(255,255,255,0.9) inset;
-  --ice:#1D1D1F;--teal:#0071E3;--sky:#0077ED;--sky-b:#2997FF;--node:#0071E3;
-  --teal-d:rgba(0,113,227,0.08);--teal-g:rgba(0,113,227,0.15);
-  --gold:#FF9500;--gold-d:rgba(255,149,0,0.08);
+  --navy:#FFFAFA;--navy2:#FFFFFF;--navy3:#F0F0F5;
+  --glass:rgba(255,255,255,0.82);--glass-h:rgba(255,255,255,0.9);--glass-a:rgba(255,255,255,0.95);
+  --gb:rgba(0,0,0,0.07);--gb2:rgba(0,0,0,0.12);--gs:rgba(255,255,255,0.95);
+  --text:#1a1a2e;--t2:rgba(26,26,46,0.55);--t3:rgba(26,26,46,0.3);--t4:rgba(26,26,46,0.1);
+  --gsh:0 1px 12px rgba(0,0,0,0.04),0 0.5px 0 rgba(255,255,255,0.9) inset;
+  --gsh-lg:0 4px 24px rgba(0,0,0,0.06),0 0.5px 0 rgba(255,255,255,0.95) inset;
+  --ice:#1a1a2e;--teal:#0071E3;--sky:#0077ED;--sky-b:#2997FF;--node:#0071E3;
+  --teal-d:rgba(0,113,227,0.06);--teal-g:rgba(0,113,227,0.12);
+  --gold:#E8920A;--gold-d:rgba(232,146,10,0.06);
   --green:#34C759;--red:#FF3B30;--purple:#AF52DE;--orange:#FF9500;
 }
 
-html:not([data-theme="light"]) {
-  --navy:#000000;--navy2:#0A0A0C;--navy3:#161618;
-  --glass:rgba(28,28,30,0.65);--glass-h:rgba(38,38,40,0.72);--glass-a:rgba(48,48,50,0.78);
-  --gb:rgba(255,255,255,0.08);--gb2:rgba(255,255,255,0.14);--gs:rgba(255,255,255,0.06);
-  --gsh:0 2px 20px rgba(0,0,0,0.5),0 0.5px 0 rgba(255,255,255,0.06) inset;
-  --gsh-lg:0 12px 48px rgba(0,0,0,0.6),0 0.5px 0 rgba(255,255,255,0.08) inset;
-  --text:#F5F5F7;--t2:rgba(245,245,247,0.6);--t3:rgba(245,245,247,0.3);--t4:rgba(245,245,247,0.12);
-  --ice:#F5F5F7;--teal:#0A84FF;--sky:#30D5C8;--sky-b:#64D2FF;--node:#5AC8FA;
-  --teal-d:rgba(10,132,255,0.12);--teal-g:rgba(10,132,255,0.2);
-  --gold:#FFD60A;--gold-d:rgba(255,214,10,0.1);
-  --green:#30D158;--red:#FF453A;--purple:#BF5AF2;--orange:#FF9F0A;
-}
+/* Dark mode = original navy blue (no override needed, uses :root defaults) */
 
 /* UNIVERSAL TRANSITIONS */
 body,header,.sidebar,.r-panel,.app,.msg-bub,.chip,
@@ -673,9 +662,9 @@ html[data-theme="light"] .upgrade-btn{background:linear-gradient(135deg,#0071E3,
 html[data-theme="light"] .ob-start{background:linear-gradient(135deg,#0071E3,#2997FF) !important;box-shadow:0 4px 24px rgba(0,113,227,0.3) !important}
 html[data-theme="light"] .auth-submit{background:linear-gradient(135deg,#0071E3,#2997FF) !important}
 html[data-theme="light"] .next-q-btn{background:linear-gradient(135deg,#0071E3,#2997FF) !important}
-html[data-theme="light"] body{background:#FFFAFA !important}
-html[data-theme="light"] .onboarding{background:#FFFAFA !important}
-html[data-theme="light"] .pos-test{background:#FFFAFA !important}
+html[data-theme="light"] body{background:var(--navy) !important}
+html[data-theme="light"] .onboarding{background:var(--navy) !important}
+html[data-theme="light"] .pos-test{background:var(--navy) !important}
 
 /* SINGLE NAV BAR - RESPONSIVE */
 @media(max-width:768px){
@@ -794,7 +783,7 @@ html[data-theme="light"] .qcm-results-card{background:rgba(255,255,255,0.8)}
 
 /* ═══ ROAD ANIMATION (light mode) ═══ */
 .road-anim{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0;transition:opacity 0.8s}
-html[data-theme="light"] .road-anim{opacity:0.08}
+html[data-theme="light"] .road-anim{opacity:0.12}
 .road-svg{width:100%;height:100%}
 .car-right{animation:carRight 8s linear infinite}
 .car-right2{animation:carRight 12s linear infinite;animation-delay:-4s}
@@ -836,6 +825,36 @@ html[data-theme="light"] .pos-choice:hover,html[data-theme="light"] .pos-choice:
 .ae-badge.prog{background:rgba(255,159,10,0.08);color:var(--orange)}
 .gauge-step{padding:4px 10px;border-radius:50px;font-size:10px;font-weight:600;background:var(--t4);color:var(--t3)}
 .gauge-step.done{background:var(--teal-d);color:var(--teal)}
+
+
+/* ═══ ENHANCED LIGHT MODE UX ═══ */
+html[data-theme="light"] header{background:rgba(255,250,250,0.85) !important;border-bottom:1px solid rgba(0,0,0,0.05) !important}
+html[data-theme="light"] .sidebar{background:rgba(255,255,255,0.9) !important;border-right:1px solid rgba(0,0,0,0.05) !important}
+html[data-theme="light"] .right-panel{background:rgba(255,255,255,0.9) !important;border-left:1px solid rgba(0,0,0,0.05) !important}
+html[data-theme="light"] .tab-bar{background:rgba(255,250,250,0.9) !important;border-bottom:1px solid rgba(0,0,0,0.05) !important}
+html[data-theme="light"] .input-area{background:rgba(255,250,250,0.9) !important;border-top:1px solid rgba(0,0,0,0.05) !important}
+html[data-theme="light"] .topic-btn{color:rgba(26,26,46,0.6) !important}
+html[data-theme="light"] .topic-btn.active{background:rgba(0,113,227,0.06) !important;color:#0071E3 !important}
+html[data-theme="light"] .topic-btn:hover{background:rgba(0,113,227,0.04) !important;color:#0071E3 !important}
+html[data-theme="light"] .tab-btn.active{background:rgba(0,113,227,0.08) !important;color:#0071E3 !important}
+html[data-theme="light"] .r-card{background:rgba(255,255,255,0.95) !important;border:1px solid rgba(0,0,0,0.06) !important;box-shadow:0 1px 8px rgba(0,0,0,0.04) !important}
+html[data-theme="light"] .chip{background:rgba(255,255,255,0.9) !important;border:1px solid rgba(0,0,0,0.08) !important;color:rgba(26,26,46,0.6) !important}
+html[data-theme="light"] .chip:hover{background:rgba(0,113,227,0.06) !important;border-color:rgba(0,113,227,0.2) !important;color:#0071E3 !important}
+html[data-theme="light"] .q-card{background:rgba(255,255,255,0.95) !important;border:1px solid rgba(0,0,0,0.06) !important;box-shadow:0 2px 12px rgba(0,0,0,0.04) !important}
+html[data-theme="light"] .choice{background:rgba(255,255,255,0.95) !important;border:1px solid rgba(0,0,0,0.08) !important;color:#1a1a2e !important}
+html[data-theme="light"] .choice:hover{background:rgba(0,113,227,0.04) !important;border-color:rgba(0,113,227,0.2) !important}
+html[data-theme="light"] .quota-card{background:rgba(255,255,255,0.95) !important;border:1px solid rgba(0,0,0,0.06) !important}
+html[data-theme="light"] .exam-btn{background:rgba(0,113,227,0.06) !important;border:1px solid rgba(0,113,227,0.12) !important;color:#0071E3 !important}
+html[data-theme="light"] .msg.bot .msg-bub{background:rgba(255,255,255,0.95) !important;border:1px solid rgba(0,0,0,0.06) !important;color:#1a1a2e !important}
+html[data-theme="light"] .sb-label{color:rgba(26,26,46,0.25) !important}
+html[data-theme="light"] .input-row{background:rgba(255,255,255,0.95) !important;border:1px solid rgba(0,0,0,0.08) !important}
+html[data-theme="light"] .nav-c{background:rgba(255,255,255,0.95) !important;border:1px solid rgba(0,0,0,0.06) !important}
+html[data-theme="light"] .welcome-msg h2{color:#1a1a2e !important}
+html[data-theme="light"] .qcm-results-card{background:rgba(255,255,255,0.95) !important;border:1px solid rgba(0,0,0,0.06) !important}
+html[data-theme="light"] .qcr-continue{background:linear-gradient(135deg,#0071E3,#2997FF) !important}
+html[data-theme="light"] .admin-kpi{background:rgba(255,255,255,0.95) !important;border:1px solid rgba(0,0,0,0.06) !important}
+html[data-theme="light"] .profile-header-card,.profile-stat-card,.profile-level-card{background:rgba(255,255,255,0.95) !important;border:1px solid rgba(0,0,0,0.06) !important}
+html[data-theme="light"] .profile-badge{background:rgba(255,255,255,0.95) !important;border:1px solid rgba(0,0,0,0.06) !important}
 
 </style>
 </head>
@@ -1944,25 +1963,25 @@ function updateProfilePanel() {
 (function() {
   var origSetMode = window.setMode;
   window.setMode = function(mode) {
-    document.getElementById('profile-panel').style.display = mode === 'profile' ? 'flex' : 'none';
-    document.getElementById('verif-panel').style.display = mode === 'verif' ? 'flex' : 'none';
-    document.getElementById('admin-panel').style.display = mode === 'admin' ? 'flex' : 'none';
-    document.getElementById('ae-admin-panel').style.display = mode === 'ae-admin' ? 'flex' : 'none';
-    if(mode==='verif')loadVerifPanel();
-    if(mode==='admin')loadAdminPanel();
-    if(mode==='ae-admin')loadAEPanel();
-    if(mode==='profile'){try{updateProfilePanelV2();}catch(e){}}
-    if (mode === 'profile') {
-      updateProfilePanel();
-      ['messages','qcm-panel','vision-panel','veille-panel','plan30-panel','lb-panel','dash-panel','readiness-panel','ref-panel','verif-panel','admin-panel','ae-admin-panel'].forEach(function(id) {
-        var el = document.getElementById(id); if (el) el.style.display = 'none';
+    var pp=document.getElementById('profile-panel');if(pp)pp.style.display=mode==='profile'?'flex':'none';
+    var vp=document.getElementById('verif-panel');if(vp)vp.style.display=mode==='verif'?'flex':'none';
+    var ap=document.getElementById('admin-panel');if(ap)ap.style.display=mode==='admin'?'flex':'none';
+    var aep=document.getElementById('ae-admin-panel');if(aep)aep.style.display=mode==='ae-admin'?'flex':'none';
+    if(mode==='verif'){try{loadVerifPanel();}catch(e){}}
+    if(mode==='admin'){try{loadAdminPanel();}catch(e){}}
+    if(mode==='ae-admin'){try{loadAEPanel();}catch(e){}}
+    if(mode==='profile'){
+      try{updateProfilePanelV2();}catch(e){}
+      try{updateProfilePanel();}catch(e){}
+      ['messages','qcm-panel','vision-panel','veille-panel','plan30-panel','lb-panel','dash-panel','readiness-panel','ref-panel','verif-panel','admin-panel','ae-admin-panel'].forEach(function(id){
+        var el=document.getElementById(id);if(el)el.style.display='none';
       });
-      document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
-      var tb = document.getElementById('tab-profile'); if (tb) tb.classList.add('active');
-      var ib = document.querySelector('.input-area'); if (ib) ib.style.display = 'none';
+      document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
+      var tb=document.getElementById('tab-profile');if(tb)tb.classList.add('active');
+      var ib=document.querySelector('.input-area');if(ib)ib.style.display='none';
       return;
     }
-    if (origSetMode) origSetMode(mode);
+    if(origSetMode)origSetMode(mode);
   };
 })();
 
