@@ -856,6 +856,13 @@ html[data-theme="light"] .admin-kpi{background:rgba(255,255,255,0.95) !important
 html[data-theme="light"] .profile-header-card,.profile-stat-card,.profile-level-card{background:rgba(255,255,255,0.95) !important;border:1px solid rgba(0,0,0,0.06) !important}
 html[data-theme="light"] .profile-badge{background:rgba(255,255,255,0.95) !important;border:1px solid rgba(0,0,0,0.06) !important}
 
+
+/* ═══ AUTH ROLE SELECTOR ═══ */
+.auth-role-selector{display:flex;gap:6px;margin-bottom:14px}
+.auth-role{flex:1;padding:10px 8px;border-radius:14px;border:1.5px solid var(--gb);background:var(--glass);backdrop-filter:blur(20px);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;text-align:center;transition:all 0.25s}
+.auth-role.active{border-color:var(--teal);background:var(--teal-d);color:var(--teal)}
+.auth-role:hover:not(.active){border-color:var(--gb2)}
+
 </style>
 </head>
 <body>
@@ -941,10 +948,10 @@ html[data-theme="light"] .profile-badge{background:rgba(255,255,255,0.95) !impor
     <div class="streak-b" id="streak-b">🔥 0j</div>
     <div class="xp-b" id="xp-b">⚡ 0 XP</div>
     <button class="settings-btn" id="settings-btn" onclick="document.getElementById('settings-overlay').classList.add('show')" style="display:none">⚙️</button>
-    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Changer de theme"><span class="tg-moon">🌙</span><span class="tg-sun">☀️</span></button>
+    
     <button class="profil-btn" id="auth-btn" onclick="openAuth()">
       <span class="profil-icon" id="profil-icon">👤</span>
-      <span class="profil-label" id="profil-label">Inscription</span>
+      <span class="profil-label" id="profil-label">Connexion</span>
     </button>
     <div class="plan-b free" id="plan-b" onclick="openPricing()">Gratuit</div>
   </div>
@@ -985,10 +992,9 @@ html[data-theme="light"] .profile-badge{background:rgba(255,255,255,0.95) !impor
         <button class="tab-btn" id="tab-plan30" onclick="setMode('plan30')">📅 Plan 30j</button>
         <button class="tab-btn" id="tab-lb" onclick="setMode('lb')">🏆 Classement</button>
         <button class="tab-btn" id="tab-exam" onclick="startExam()">📝 Examen</button>
-        <button class="tab-btn" id="tab-profile" onclick="setMode('profile')">👤 Profil</button>
-        <button class="tab-btn" id="tab-verif" onclick="setMode('verif')">🔧 Vérif. technique</button>
+        
       </div>
-      <div class="ai-ind"><div class="ai-p"></div>MA1 IA · En ligne<button class="clear-btn" onclick="clearChat()">Effacer</button></div>
+      
     </div>
 
     <div class="messages" id="messages">
@@ -1104,16 +1110,16 @@ html[data-theme="light"] .profile-badge{background:rgba(255,255,255,0.95) !impor
 
   <aside class="right-panel">
     <div class="r-card"><h4>📊 Ma progression</h4><div class="score-ring"><div class="score-big" id="rp-pct">0%</div><div class="score-sub">taux de reussite</div></div><div class="mini-stats"><div class="mini-stat"><div class="mini-stat-val" id="rp-total">0</div><div class="mini-stat-lab">Questions</div></div><div class="mini-stat"><div class="mini-stat-val" id="rp-streak">0</div><div class="mini-stat-lab">Serie 🔥</div></div></div><div class="level-pill" id="rp-level">🎓 Debutant</div></div>
-    <div class="r-card"><h4>🏅 Badges</h4><div class="achievements" id="ach"><div class="badge" id="b-first" title="Premiere question">🎯</div><div class="badge" id="b-streak5" title="Serie de 5">🔥</div><div class="badge" id="b-streak10" title="Serie de 10">💎</div><div class="badge" id="b-50q" title="50 questions">📚</div><div class="badge" id="b-100q" title="100 questions">🏆</div><div class="badge" id="b-exam" title="Examen reussi">🎓</div><div class="badge" id="b-perfect" title="Sans-faute">⭐</div></div></div>
+    
     <div class="r-card"><h4>🎯 Pret pour l'examen ?</h4>
       <div class="readiness-card">
         <div class="readiness-ring"><svg class="readiness-svg" viewBox="0 0 80 80" width="80" height="80"><circle class="readiness-bg" cx="40" cy="40" r="35"/><circle class="readiness-fg" id="readiness-fg" cx="40" cy="40" r="35" stroke="var(--teal)" stroke-dasharray="220" stroke-dashoffset="220"/></svg><div class="readiness-num" id="readiness-num">0%</div></div>
         <div class="readiness-label" id="readiness-label">Continuez les QCM</div>
       </div>
     </div>
-    <div class="r-card"><h4>💡 Conseil du jour</h4><div class="tip-card" id="daily-tip"><strong>🛣️ Vitesse autoroute</strong>130 km/h par temps sec · 110 km/h pluie · 50 km/h brouillard &lt; 50 m.</div></div>
-    <div class="r-card"><h4>⚡ Points a retravailler</h4><div class="weak-topics" id="weak-topics"><div style="font-size:10.5px;color:var(--t3)">Faites des QCM pour identifier vos points faibles.</div></div></div>
-    <div class="r-card"><h4>📚 Articles cles</h4><div class="recent-links"><a class="recent-link" href="https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000025244988" target="_blank">Art. R413-2 · Vitesses maximales</a><a class="recent-link" href="https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000022197207" target="_blank">Art. R234-1 · Alcoolemie</a><a class="recent-link" href="https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000006841622" target="_blank">Art. R415-5 · Priorites</a><a class="recent-link" href="https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000022197205" target="_blank">Art. R412-1 · Ceinture</a></div></div>
+    
+    
+    
   </aside>
 </div>
 
@@ -1165,10 +1171,15 @@ html[data-theme="light"] .profile-badge{background:rgba(255,255,255,0.95) !impor
       <div class="auth-switch">Pas encore inscrit ? <a onclick="showRegister()">Creer un compte</a></div>
     </div>
     <div id="auth-form-register" style="display:none">
+      <div class="auth-role-selector">
+        <button class="auth-role active" id="role-apprenti" onclick="selectRole('apprenti')">🚗 Apprenti conducteur</button>
+        <button class="auth-role" id="role-moniteur" onclick="selectRole('moniteur')">🏫 Moniteur / Auto-école</button>
+      </div>
       <div class="auth-field"><label>Prenom</label><input class="auth-input" id="reg-name" type="text" placeholder="Votre prenom"/></div>
+      <div class="auth-field" id="ae-name-field" style="display:none"><label>Nom de l'auto-école</label><input class="auth-input" id="reg-ae-name" type="text" placeholder="Ex: Auto-École Conduite Plus"/></div>
       <div class="auth-field"><label>Email</label><input class="auth-input" id="reg-email" type="email" placeholder="votre@email.com"/></div>
       <div class="auth-field"><label>Mot de passe</label><input class="auth-input" id="reg-pw" type="password" placeholder="Min. 6 caracteres"/></div>
-      <div class="age-field"><label>Annee de naissance</label><select id="reg-birth"><option value="">Selectionnez...</option></select></div>
+      <div class="age-field" id="age-field"><label>Annee de naissance</label><select id="reg-birth"><option value="">Selectionnez...</option></select></div>
       <button class="auth-submit" onclick="doRegister()">Creer mon compte</button>
       <div class="auth-switch">Deja inscrit ? <a onclick="showLogin()">Se connecter</a></div>
     </div>
@@ -2078,6 +2089,17 @@ function updateProfilePanelV2(){
   // Insert after stats grid
   var statsGrid=pp.querySelector('.profile-stats-grid');
   if(statsGrid&&statsGrid.nextSibling){pp.insertBefore(gaugeEl,statsGrid.nextSibling);}
+}
+
+
+/* ═══ ROLE SELECTOR ═══ */
+var selectedRole = 'apprenti';
+function selectRole(role) {
+  selectedRole = role;
+  document.getElementById('role-apprenti').classList.toggle('active', role === 'apprenti');
+  document.getElementById('role-moniteur').classList.toggle('active', role === 'moniteur');
+  document.getElementById('ae-name-field').style.display = role === 'moniteur' ? 'block' : 'none';
+  document.getElementById('age-field').style.display = role === 'apprenti' ? 'block' : 'none';
 }
 
 </script>

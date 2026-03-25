@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="description" content="MA1 — L'intelligence artificielle qui t'accompagne vers la réussite du Code de la Route. QCM adaptatifs, analyse d'images, examen blanc. Par DamCompany."/>
+<meta property="og:title" content="MA1 — Ton Assistant IA du Code de la Route"/>
+<meta property="og:description" content="Révise le Code de la Route avec l'IA. QCM adaptatifs, vision par IA, examen blanc. Gratuit."/>
+<title>MA1 — Ton Assistant IA du Code de la Route</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Nunito+Sans:ital,opsz,wght@0,6..12,300..700;1,6..12,400&display=swap" rel="stylesheet"/>
+<style>
+:root{--navy:#0a1628;--navy2:#0f2035;--navy3:#132d4a;--teal:#3a9db0;--sky:#7ec8e3;--ice:#d0eaf2;--glass:rgba(15,40,70,0.35);--gb:rgba(58,157,176,0.12);--fd:'Sora',system-ui,sans-serif;--fb:'Nunito Sans',system-ui,sans-serif}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--fb);background:var(--navy);color:var(--ice);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+::selection{background:rgba(58,157,176,0.4);color:#fff}
+
+/* STARFIELD */
+#starfield{position:fixed;inset:0;z-index:0;pointer-events:none}
+.glow{position:fixed;border-radius:50%;filter:blur(120px);opacity:0.15;pointer-events:none;z-index:0}
+.glow-1{width:600px;height:600px;top:-150px;left:-100px;background:radial-gradient(circle,rgba(58,157,176,0.5),transparent 70%);animation:gD 35s ease-in-out infinite alternate}
+.glow-2{width:450px;height:450px;bottom:-80px;right:-60px;background:radial-gradient(circle,rgba(126,200,227,0.25),transparent 70%);animation:gD 28s ease-in-out infinite alternate-reverse}
+@keyframes gD{0%{transform:translate(0,0) scale(1)}100%{transform:translate(40px,25px) scale(1.06)}}
+
+/* NAV */
+nav{position:fixed;top:0;width:100%;z-index:100;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(40px) saturate(180%);-webkit-backdrop-filter:blur(40px) saturate(180%);background:rgba(10,22,40,0.7);border-bottom:1px solid var(--gb);transition:all 0.3s}
+.nav-logo{display:flex;align-items:center;gap:10px}
+.nav-logo img{height:36px;border-radius:8px;filter:drop-shadow(0 0 8px rgba(58,157,176,0.3))}
+.nav-logo-text{font-family:var(--fd);font-weight:800;font-size:18px;letter-spacing:-0.5px}
+.nav-logo-sub{font-size:8px;color:var(--teal);letter-spacing:2px;text-transform:uppercase;font-weight:700}
+.nav-links{display:flex;gap:28px;align-items:center}
+.nav-links a{color:rgba(208,234,242,0.6);font-size:13px;font-weight:600;text-decoration:none;transition:color 0.2s}
+.nav-links a:hover{color:var(--ice)}
+.nav-cta{padding:10px 24px;border-radius:50px;border:none;background:linear-gradient(135deg,var(--teal),var(--sky));color:#fff;font-family:var(--fd);font-weight:700;font-size:13px;cursor:pointer;text-decoration:none;box-shadow:0 4px 20px rgba(58,157,176,0.35);transition:all 0.25s;display:inline-block}
+.nav-cta:hover{transform:translateY(-2px);box-shadow:0 6px 28px rgba(58,157,176,0.5)}
+@media(max-width:768px){.nav-links a:not(.nav-cta){display:none}.nav{padding:12px 16px}}
+
+/* HERO */
+.hero{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:120px 24px 80px}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:50px;background:var(--glass);border:1px solid var(--gb);font-size:11px;font-weight:600;color:var(--teal);margin-bottom:24px;backdrop-filter:blur(20px);animation:fadeUp 0.6s ease both}
+.hero-badge .pulse{width:6px;height:6px;border-radius:50%;background:var(--teal);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.hero h1{font-family:var(--fd);font-size:clamp(36px,6vw,72px);font-weight:800;letter-spacing:-2px;line-height:1.05;margin-bottom:16px;animation:fadeUp 0.6s ease 0.1s both}
+.hero h1 .gradient{background:linear-gradient(135deg,var(--teal),var(--sky));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{font-size:clamp(15px,2vw,18px);color:rgba(208,234,242,0.55);max-width:540px;line-height:1.7;margin-bottom:36px;animation:fadeUp 0.6s ease 0.2s both}
+.hero-btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;animation:fadeUp 0.6s ease 0.3s both}
+.hero-btns .primary{padding:14px 36px;border-radius:50px;border:none;background:linear-gradient(135deg,var(--teal),var(--sky));color:#fff;font-family:var(--fd);font-weight:700;font-size:15px;cursor:pointer;box-shadow:0 4px 24px rgba(58,157,176,0.4);transition:all 0.25s;text-decoration:none}
+.hero-btns .primary:hover{transform:translateY(-3px);box-shadow:0 8px 36px rgba(58,157,176,0.5)}
+.hero-btns .secondary{padding:14px 36px;border-radius:50px;border:1.5px solid var(--gb);background:var(--glass);color:var(--ice);font-family:var(--fd);font-weight:600;font-size:15px;cursor:pointer;backdrop-filter:blur(20px);transition:all 0.25s;text-decoration:none}
+.hero-btns .secondary:hover{border-color:var(--teal);background:rgba(58,157,176,0.08)}
+.hero-mockup{margin-top:60px;width:min(900px,90vw);border-radius:16px;border:1px solid var(--gb);background:var(--glass);backdrop-filter:blur(20px);box-shadow:0 24px 80px rgba(0,0,0,0.5),0 1px 0 rgba(126,200,227,0.08) inset;overflow:hidden;animation:fadeUp 0.8s ease 0.4s both}
+.hero-mockup img{width:100%;display:block}
+.hero-mockup .mockup-bar{height:28px;background:rgba(10,22,40,0.6);border-bottom:1px solid var(--gb);display:flex;align-items:center;gap:5px;padding:0 10px}
+.mockup-dot{width:8px;height:8px;border-radius:50%;background:rgba(126,200,227,0.2)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+
+/* SECTION */
+section{position:relative;z-index:1;padding:100px 24px}
+.section-inner{max-width:1100px;margin:0 auto}
+.section-tag{display:inline-flex;padding:5px 14px;border-radius:50px;background:var(--glass);border:1px solid var(--gb);font-size:10px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:16px}
+.section-title{font-family:var(--fd);font-size:clamp(28px,4vw,42px);font-weight:800;letter-spacing:-1.5px;margin-bottom:12px}
+.section-desc{font-size:16px;color:rgba(208,234,242,0.5);max-width:520px;line-height:1.7}
+
+/* FEATURES */
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:48px}
+@media(max-width:768px){.features-grid{grid-template-columns:1fr}}
+.feature-card{padding:28px 24px;border-radius:20px;background:var(--glass);border:1px solid var(--gb);backdrop-filter:blur(20px);transition:all 0.3s}
+.feature-card:hover{transform:translateY(-4px);border-color:rgba(58,157,176,0.3);box-shadow:0 12px 40px rgba(0,0,0,0.3)}
+.feature-icon{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,rgba(58,157,176,0.15),rgba(126,200,227,0.1));display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:16px}
+.feature-card h3{font-family:var(--fd);font-size:16px;font-weight:700;letter-spacing:-0.3px;margin-bottom:6px}
+.feature-card p{font-size:13px;color:rgba(208,234,242,0.5);line-height:1.65}
+
+/* HOW IT WORKS */
+.steps{display:flex;gap:32px;margin-top:48px;counter-reset:step}
+@media(max-width:768px){.steps{flex-direction:column}}
+.step{flex:1;position:relative;padding:28px 24px;border-radius:20px;background:var(--glass);border:1px solid var(--gb);backdrop-filter:blur(20px);counter-increment:step}
+.step::before{content:counter(step);position:absolute;top:-14px;left:20px;width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--sky));display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-weight:800;font-size:13px;color:#fff;box-shadow:0 4px 12px rgba(58,157,176,0.3)}
+.step h3{font-family:var(--fd);font-size:15px;font-weight:700;margin-bottom:6px;margin-top:8px}
+.step p{font-size:13px;color:rgba(208,234,242,0.5);line-height:1.6}
+
+/* PRICING */
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:48px}
+@media(max-width:768px){.pricing-grid{grid-template-columns:1fr}}
+.price-card{padding:28px 24px;border-radius:20px;background:var(--glass);border:1px solid var(--gb);backdrop-filter:blur(20px);text-align:center;transition:all 0.3s}
+.price-card.featured{border-color:var(--teal);background:rgba(58,157,176,0.06);box-shadow:0 0 0 1px var(--teal),0 8px 32px rgba(58,157,176,0.15)}
+.price-card .price-label{font-family:var(--fd);font-size:12px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.price-card .price-val{font-family:var(--fd);font-size:36px;font-weight:800;letter-spacing:-1px;margin-bottom:4px}
+.price-card .price-period{font-size:12px;color:rgba(208,234,242,0.4);margin-bottom:16px}
+.price-features{list-style:none;text-align:left;font-size:13px;color:rgba(208,234,242,0.6);display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+.price-features li::before{content:'✓ ';color:var(--teal);font-weight:700}
+.price-cta{width:100%;padding:12px;border-radius:14px;border:none;font-family:var(--fd);font-weight:700;font-size:13px;cursor:pointer;transition:all 0.25s}
+.price-card.featured .price-cta{background:linear-gradient(135deg,var(--teal),var(--sky));color:#fff;box-shadow:0 4px 16px rgba(58,157,176,0.3)}
+.price-card:not(.featured) .price-cta{background:var(--glass);border:1px solid var(--gb);color:var(--ice)}
+
+/* AUTOECOLE */
+.ae-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:48px;align-items:center}
+@media(max-width:768px){.ae-grid{grid-template-columns:1fr}}
+.ae-feature{display:flex;gap:14px;margin-bottom:20px}
+.ae-feature .ae-ico{width:40px;height:40px;border-radius:12px;background:rgba(58,157,176,0.1);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.ae-feature h4{font-family:var(--fd);font-size:14px;font-weight:700;margin-bottom:2px}
+.ae-feature p{font-size:12px;color:rgba(208,234,242,0.45);line-height:1.5}
+.ae-mockup{border-radius:16px;border:1px solid var(--gb);background:var(--glass);backdrop-filter:blur(20px);padding:20px;box-shadow:0 12px 48px rgba(0,0,0,0.3)}
+.ae-stat{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.ae-stat-card{padding:14px;border-radius:14px;background:rgba(58,157,176,0.06);border:1px solid var(--gb);text-align:center}
+.ae-stat-card .v{font-family:var(--fd);font-size:24px;font-weight:800;color:var(--teal)}
+.ae-stat-card .l{font-size:9px;color:rgba(208,234,242,0.4);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px}
+
+/* DAMCOMPANY */
+.dc-section{text-align:center}
+.dc-logo{font-family:var(--fd);font-size:28px;font-weight:800;color:var(--ice);margin-bottom:8px}
+.dc-logo span{color:#f2c200}
+.dc-desc{font-size:14px;color:rgba(208,234,242,0.45);max-width:500px;margin:0 auto 24px;line-height:1.7}
+.dc-link{color:var(--teal);text-decoration:none;font-weight:600;border-bottom:1px solid transparent;transition:border-color 0.2s}
+.dc-link:hover{border-color:var(--teal)}
+
+/* CTA FINAL */
+.cta-section{text-align:center;padding:120px 24px}
+.cta-section h2{font-family:var(--fd);font-size:clamp(28px,4vw,44px);font-weight:800;letter-spacing:-1.5px;margin-bottom:16px}
+.cta-section p{color:rgba(208,234,242,0.5);font-size:16px;margin-bottom:32px}
+
+/* FOOTER */
+footer{position:relative;z-index:1;border-top:1px solid var(--gb);padding:40px 24px;text-align:center}
+.footer-inner{max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
+.footer-links{display:flex;gap:20px}
+.footer-links a{color:rgba(208,234,242,0.35);font-size:12px;text-decoration:none;transition:color 0.2s}
+.footer-links a:hover{color:var(--ice)}
+.footer-copy{font-size:11px;color:rgba(208,234,242,0.25)}
+</style>
+</head>
+<body>
+
+<canvas id="starfield"></canvas>
+<div class="glow glow-1"></div>
+<div class="glow glow-2"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <img src="/ma1-logo.jpeg" alt="MA1"/>
+    <div><div class="nav-logo-text">MA1</div><div class="nav-logo-sub">Ton Assistant de la Route</div></div>
+  </div>
+  <div class="nav-links">
+    <a href="#features">Fonctionnalites</a>
+    <a href="#pricing">Tarifs</a>
+    <a href="#autoecole">Auto-ecoles</a>
+    <a href="#about">DamCompany</a>
+    <a class="nav-cta" href="/index-standalone.html">Acceder a MA1</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge"><span class="pulse"></span> Propulse par l'Intelligence Artificielle</div>
+  <h1>Reussis ton Code<br/>avec <span class="gradient">l'IA</span></h1>
+  <p>MA1 est ton assistant IA personnel pour le Code de la Route. QCM adaptatifs, analyse de panneaux, examen blanc — tout ce qu'il te faut pour reussir du premier coup.</p>
+  <div class="hero-btns">
+    <a class="primary" href="/index-standalone.html">Commencer gratuitement</a>
+    <a class="secondary" href="#features">Decouvrir</a>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="section-inner">
+    <div class="section-tag">Fonctionnalites</div>
+    <div class="section-title">Tout pour reussir</div>
+    <p class="section-desc">MA1 combine la puissance de l'IA avec la rigueur du Code de la Route pour creer l'outil de revision ultime.</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">💬</div>
+        <h3>Chat IA Expert</h3>
+        <p>Posez n'importe quelle question sur le Code de la Route. L'IA repond instantanement avec les articles de loi.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📋</div>
+        <h3>QCM Adaptatifs</h3>
+        <p>Des questions generees par IA qui s'adaptent a votre niveau. Plus vous progressez, plus elles se complexifient.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📸</div>
+        <h3>Vision par IA</h3>
+        <p>Prenez en photo un panneau ou une situation de conduite. L'IA l'analyse et vous explique la reglementation.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📝</div>
+        <h3>Examen Blanc</h3>
+        <p>40 questions dans les conditions reelles. Timer de 30 minutes, bareme officiel, correction detaillee.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📡</div>
+        <h3>Veille Juridique</h3>
+        <p>Restez informe des dernieres evolutions du Code de la Route grace a l'analyse IA de l'actualite.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔧</div>
+        <h3>Verif. Technique</h3>
+        <p>Entrainez-vous aux questions de verification technique du permis de conduire. Indispensable le jour J.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section>
+  <div class="section-inner">
+    <div class="section-tag">Comment ca marche</div>
+    <div class="section-title">3 etapes vers le permis</div>
+    <div class="steps">
+      <div class="step">
+        <h3>Testez votre niveau</h3>
+        <p>Un test de positionnement intelligent identifie vos forces et points faibles en quelques minutes.</p>
+      </div>
+      <div class="step">
+        <h3>Revisez avec l'IA</h3>
+        <p>QCM adaptatifs, chat IA, vision de panneaux. L'IA personnalise votre parcours pour progresser vite.</p>
+      </div>
+      <div class="step">
+        <h3>Passez l'examen</h3>
+        <p>Quand votre score depasse 80%, vous etes pret. Examen blanc illimite pour vous preparer au jour J.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing">
+  <div class="section-inner">
+    <div class="section-tag">Tarifs</div>
+    <div class="section-title">Simple et transparent</div>
+    <p class="section-desc">Commencez gratuitement, passez Premium quand vous etes pret.</p>
+    <div class="pricing-grid">
+      <div class="price-card">
+        <div class="price-label">Gratuit</div>
+        <div class="price-val">0€</div>
+        <div class="price-period">pour toujours</div>
+        <ul class="price-features">
+          <li>10 questions / jour</li>
+          <li>Chat IA expert</li>
+          <li>2 examens blancs / jour</li>
+          <li>Test de positionnement</li>
+        </ul>
+        <button class="price-cta" onclick="location.href='/index-standalone.html'">Commencer</button>
+      </div>
+      <div class="price-card featured">
+        <div class="price-label">Premium</div>
+        <div class="price-val">10€<span style="font-size:16px;font-weight:400">/mois</span></div>
+        <div class="price-period">7 jours d'essai gratuit</div>
+        <ul class="price-features">
+          <li>Questions illimitees</li>
+          <li>Examens blancs illimites</li>
+          <li>Verifications techniques</li>
+          <li>Themes PRO (eco, moto, nuit)</li>
+          <li>Plan 30 jours personnalise</li>
+          <li>Support prioritaire</li>
+        </ul>
+        <button class="price-cta" onclick="location.href='/index-standalone.html'">Essai gratuit 7 jours</button>
+      </div>
+      <div class="price-card">
+        <div class="price-label">Annuel</div>
+        <div class="price-val">79€<span style="font-size:16px;font-weight:400">/an</span></div>
+        <div class="price-period">soit 6,58€/mois · 2 mois offerts</div>
+        <ul class="price-features">
+          <li>Tout Premium inclus</li>
+          <li>2 mois offerts</li>
+          <li>Acces a vie aux mises a jour</li>
+        </ul>
+        <button class="price-cta" onclick="location.href='/index-standalone.html'">Choisir l'annuel</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- AUTO-ECOLE -->
+<section id="autoecole">
+  <div class="section-inner">
+    <div class="section-tag">Auto-ecoles</div>
+    <div class="section-title">Dashboard moniteur</div>
+    <p class="section-desc">Suivez la progression de vos eleves en temps reel. MA1 devient l'assistant numerique de votre auto-ecole.</p>
+    <div class="ae-grid">
+      <div>
+        <div class="ae-feature">
+          <div class="ae-ico">📊</div>
+          <div><h4>Suivi en temps reel</h4><p>Statistiques detaillees de chaque eleve : taux de reussite, points faibles, progression.</p></div>
+        </div>
+        <div class="ae-feature">
+          <div class="ae-ico">🎯</div>
+          <div><h4>Alerte examen</h4><p>Soyez notifie quand un eleve atteint 80% de reussite et est pret pour l'examen.</p></div>
+        </div>
+        <div class="ae-feature">
+          <div class="ae-ico">🚗</div>
+          <div><h4>Suivi conduite</h4><p>Gerez les lecons de conduite, les heures effectuees et la progression pratique.</p></div>
+        </div>
+        <div class="ae-feature">
+          <div class="ae-ico">🏷️</div>
+          <div><h4>White-label</h4><p>Personnalisez MA1 aux couleurs de votre auto-ecole. Logo, palette, nom.</p></div>
+        </div>
+      </div>
+      <div class="ae-mockup">
+        <div class="ae-stat">
+          <div class="ae-stat-card"><div class="v">24</div><div class="l">Eleves</div></div>
+          <div class="ae-stat-card"><div class="v">72%</div><div class="l">Reussite</div></div>
+          <div class="ae-stat-card"><div class="v">8</div><div class="l">Prets</div></div>
+        </div>
+        <div style="font-size:11px;color:rgba(208,234,242,0.3);text-align:center">Apercu du dashboard moniteur</div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:32px">
+      <a class="nav-cta" href="/index-standalone.html" style="padding:14px 36px;font-size:15px">200€/mois · 30 eleves inclus</a>
+    </div>
+  </div>
+</section>
+
+<!-- DAMCOMPANY -->
+<section id="about">
+  <div class="section-inner dc-section">
+    <div class="section-tag">A propos</div>
+    <div class="dc-logo">Dam<span>Company</span></div>
+    <p class="dc-desc">DamCompany est une agence tech specialisee dans le developpement web et les solutions IA. MA1 est notre produit phare — ne de la conviction que l'intelligence artificielle peut transformer l'apprentissage du Code de la Route.</p>
+    <a class="dc-link" href="https://dam-company.vercel.app" target="_blank">Decouvrir DamCompany →</a>
+  </div>
+</section>
+
+<!-- CTA FINAL -->
+<section class="cta-section">
+  <h2>Pret a reussir ton Code ?</h2>
+  <p>Rejoins les futurs conducteurs qui revisent avec l'IA.</p>
+  <div class="hero-btns">
+    <a class="primary" href="/index-standalone.html" style="font-size:16px;padding:16px 44px">Commencer gratuitement</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div style="font-family:var(--fd);font-weight:700;font-size:14px">MA1 <span style="color:rgba(208,234,242,0.3)">by</span> DamCompany</div>
+    <div class="footer-links">
+      <a href="/legal/mentions-legales.html">Mentions legales</a>
+      <a href="/legal/cgu.html">CGU</a>
+      <a href="/legal/cgv.html">CGV</a>
+      <a href="/legal/confidentialite.html">Confidentialite</a>
+    </div>
+    <div class="footer-copy">© 2026 DamCompany. Tous droits reserves.</div>
+  </div>
+</footer>
+
+<script>
+// Starfield
+const c=document.getElementById('starfield'),ctx=c.getContext('2d');let stars=[];
+function resize(){c.width=window.innerWidth;c.height=window.innerHeight}
+resize();window.addEventListener('resize',resize);
+for(let i=0;i<100;i++)stars.push({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*1.2+0.3,a:Math.random(),s:Math.random()*0.008+0.002});
+function draw(){ctx.clearRect(0,0,c.width,c.height);stars.forEach(s=>{s.a+=s.s;ctx.globalAlpha=Math.abs(Math.sin(s.a))*0.6;ctx.fillStyle='#7ec8e3';ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fill()});requestAnimationFrame(draw)}
+draw();
+
+// Scroll reveal
+const observer=new IntersectionObserver((entries)=>{entries.forEach(e=>{if(e.isIntersecting){e.target.style.opacity='1';e.target.style.transform='translateY(0)'}})},{threshold:0.1});
+document.querySelectorAll('.feature-card,.step,.price-card,.ae-feature').forEach(el=>{el.style.opacity='0';el.style.transform='translateY(24px)';el.style.transition='all 0.6s cubic-bezier(0.16,1,0.3,1)';observer.observe(el)});
+</script>
+</body>
+</html>
