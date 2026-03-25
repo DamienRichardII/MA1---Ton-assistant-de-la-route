@@ -1211,7 +1211,7 @@ html[data-theme="light"] .profile-badge{background:rgba(255,255,255,0.95) !impor
 })();
 
 /* ════════════════ STATE ════════════════ */
-const API=window.location.hostname==='localhost'||window.location.hostname==='127.0.0.1'?'http://localhost:8000':'';
+const API=window.location.hostname==='localhost'||window.location.hostname==='127.0.0.1'?'http://localhost:8000':'https://ma1-ton-assistant-de-la-route-production.up.railway.app';
 const S={mode:'chat',topic:'vitesse',plan:'free',userId:'u_'+Math.random().toString(36).slice(2,10),loading:false,history:[],qUsed:0,qMax:10,xp:0,streakDays:0,lastDay:'',examFree:1,examToday:0,qcm:{correct:0,wrong:0,streak:0,total:0,current:0,questions:[]},exam:{active:false,questions:[],current:0,answers:[],timer:null,seconds:1800},profile:{level:'debutant',score_correct:0,score_total:0,weak_topics:[],theme_scores:{}},badges:{first:false,streak5:false,streak10:false,q50:false,q100:false,exam:false,perfect:false}};
 const TIPS=[{t:'🛣️ Autoroute',c:'130 km/h sec · 110 km/h pluie · 50 km/h brouillard < 50m.'},{t:'⚠️ Priorite a droite',c:'Sans signalisation : toujours ceder le passage a droite.'},{t:'📏 Distance de securite',c:'Minimum 2 secondes avec le vehicule devant.'},{t:'🍺 Alcool',c:'Max 0,5 g/L · 0,2 g/L en probatoire.'},{t:'💡 Feux de croisement',c:'Obligatoires la nuit, en tunnel, sous la pluie.'},{t:'📱 Telephone',c:'Interdit en main. 135€ + 3 pts.'},{t:'🌱 Eco-conduite',c:'Anticipez les freinages, regime optimal.'},{t:'🅿️ Stationnement',c:'5m avant passage pieton, 12m avant arret de bus.'}];
 const ETOPICS=['vitesse','signalisation','priorite','alcool','permis','autoroute','stationnement','securite','premiers_secours'];
