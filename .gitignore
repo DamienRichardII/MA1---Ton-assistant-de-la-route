@@ -1,12 +1,47 @@
+# [Sprint Étape 3] Adapté pour structure monorepo apps/frontend + apps/backend
 node_modules/
 .next/
 .env
 .env.local
-backend/.env
-backend/__pycache__/
-backend/data/*.json
-backend/index/
+.env.production
+.env.development
+
+# Secrets backend (à NE jamais commiter)
+apps/backend/.env
+apps/backend/.env.local
+apps/backend/__pycache__/
+apps/backend/data/*.json
+apps/backend/data/*.parquet
+apps/backend/index/
+backend/.env          # rétro-compat ancienne structure
+backend/__pycache__/  # rétro-compat ancienne structure
+backend/data/*.json   # rétro-compat ancienne structure
+backend/index/        # rétro-compat ancienne structure
+
+# Secrets frontend
+apps/frontend/.env
+apps/frontend/.env.local
+apps/frontend/.env.production
+apps/frontend/.next/
+apps/frontend/node_modules/
+
+# Python
 *.pyc
+*.pyo
+__pycache__/
+*.egg-info/
+.pytest_cache/
+
+# Système
 .DS_Store
+Thumbs.db
+
+# Build
 dist/
 out/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
