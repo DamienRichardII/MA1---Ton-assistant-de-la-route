@@ -490,18 +490,34 @@ async def auth_register(req:AuthRegisterRequest):
         try: sb.table("users").insert({"user_id":uid,"email":email,"name":req.name,"plan":"free"}).execute()
         except: pass
     await sb_track({"user_id":uid,"event":"register","ts":time.time()})
-    # [Sprint Admin/Emails/Support] Welcome email via service centralisé Resend + log
+    # [Fix email welcome] Logs explicites + on lit le status renvoyé par send_email
+    # (avant : le status était jeté + pas de log si "skipped" ou "failed" propre côté Resend)
+    print(f"[EMAIL] welcome start {email}", flush=True)
     if HAS_ADMIN_STACK:
         try:
             tpl = tpl_welcome(req.name or "", email)
-            send_email(template="welcome_user", to_email=email,
-                       subject=tpl["subject"], html=tpl["html"], text=tpl["text"],
-                       user_id=uid, supabase=get_supabase(), force=True)
+            result = send_email(
+                template="welcome_user", to_email=email,
+                subject=tpl["subject"], html=tpl["html"], text=tpl["text"],
+                user_id=uid, supabase=get_supabase(), force=True,
+            )
+            status = (result or {}).get("status", "unknown")
+            if status == "sent":
+                print(f"[EMAIL] welcome sent {email} (id={(result or {}).get('message_id','')})", flush=True)
+            elif status == "skipped":
+                print(f"[EMAIL] welcome skipped {email}: {(result or {}).get('error','no reason')}", flush=True)
+            else:
+                print(f"[EMAIL] welcome failed {email}: {(result or {}).get('error','unknown error')}", flush=True)
         except Exception as e:
-            print(f"[email] welcome_user failed: {e}")
+            print(f"[EMAIL] welcome failed {email}: exception {type(e).__name__}: {e}", flush=True)
     elif HAS_EMAIL:
-        try: await send_welcome_email(email, req.name)
-        except: pass
+        try:
+            await send_welcome_email(email, req.name)
+            print(f"[EMAIL] welcome sent {email} (legacy path)", flush=True)
+        except Exception as e:
+            print(f"[EMAIL] welcome failed {email}: legacy {type(e).__name__}: {e}", flush=True)
+    else:
+        print(f"[EMAIL] welcome skipped {email}: ni HAS_ADMIN_STACK ni HAS_EMAIL — vérifier PYTHONPATH + RESEND_API_KEY", flush=True)
     # Log event register
     if HAS_ADMIN_STACK:
         try:
