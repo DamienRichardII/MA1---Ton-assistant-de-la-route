@@ -69,9 +69,21 @@ function SafeMarkdown({ text }: { text: string }) {
       {lines.map((tokens, li) => (
         <span key={li}>
           {tokens.map((t, ti) => {
-            if (t.kind === 'strong') return <strong key={ti}>{t.value}</strong>;
-            if (t.kind === 'em') return <em key={ti}>{t.value}</em>;
-            return <span key={ti}>{t.value}</span>;
+            // [Fix Vercel build] Switch exhaustif — chaque variant du type Token est géré.
+            // TypeScript narrowing garantit que `t.value` n'est accédé QUE sur les variants
+            // qui le possèdent. Le `default: return null` couvre les futurs ajouts au type.
+            switch (t.kind) {
+              case 'br':
+                return <br key={ti} />;
+              case 'strong':
+                return <strong key={ti}>{t.value}</strong>;
+              case 'em':
+                return <em key={ti}>{t.value}</em>;
+              case 'text':
+                return <span key={ti}>{t.value}</span>;
+              default:
+                return null;
+            }
           })}
           {li < lines.length - 1 ? <br /> : null}
         </span>
