@@ -21,11 +21,38 @@ except ImportError:
     _RESEND_OK = False
     resend = None  # type: ignore
 
+# [Fix Resend from field] Certains hébergeurs (Railway notamment) gardent les
+# guillemets dans la valeur quand on saisit RESEND_FROM="MA1 <contact@ma1.fr>".
+# Résultat : la string Python vaut littéralement `"MA1 <contact@ma1.fr>"` (avec
+# guillemets) au lieu de `MA1 <contact@ma1.fr>` → Resend renvoie 422 validation_error.
+# On strip systématiquement guillemets simples/doubles + backslash-quotes.
+def _clean_email_from(value: str) -> str:
+    if not value:
+        return value
+    v = value.strip()
+    # Strip backslash-quotes EN PREMIER (cas où Railway garde `\"...\"`)
+    # Sinon strip('"') consomme le " seul et laisse un \ orphelin en fin.
+    v = v.replace('\\"', '').replace("\\'", "")
+    # Strip guillemets droits/courbes en début ET fin (peut être doublés)
+    for _ in range(3):
+        v = v.strip().strip('"').strip("'").strip("“").strip("”").strip("‘").strip("’")
+    return v.strip()
+
+
 # Configuration
-RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
-EMAIL_FROM = os.getenv("RESEND_FROM") or os.getenv("EMAIL_FROM") or os.getenv("RESEND_FROM_EMAIL") or "MA1 <contact@ma1.fr>"
-REPLY_TO = os.getenv("RESEND_REPLY_TO") or os.getenv("SUPPORT_EMAIL") or os.getenv("ADMIN_EMAIL") or "contact@ma1.fr"
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "").strip().strip('"').strip("'")
+EMAIL_FROM = _clean_email_from(
+    os.getenv("RESEND_FROM") or os.getenv("EMAIL_FROM") or os.getenv("RESEND_FROM_EMAIL") or "MA1 <contact@ma1.fr>"
+)
+REPLY_TO = _clean_email_from(
+    os.getenv("RESEND_REPLY_TO") or os.getenv("SUPPORT_EMAIL") or os.getenv("ADMIN_EMAIL") or "contact@ma1.fr"
+)
 HAS_EMAIL = _RESEND_OK and bool(RESEND_API_KEY)
+
+# Log non-sensible au démarrage pour faciliter le debug Railway.
+print(f"[EMAIL] from resolved: {EMAIL_FROM}", flush=True)
+print(f"[EMAIL] reply_to resolved: {REPLY_TO}", flush=True)
+print(f"[EMAIL] has_email: {HAS_EMAIL}", flush=True)
 
 if HAS_EMAIL:
     resend.api_key = RESEND_API_KEY
