@@ -1,12 +1,14 @@
 'use client';
 // [Sprint Admin/Emails/Support] Page de réinitialisation du mot de passe admin.
 // Atterrissage depuis l'email Resend (?token=...).
-import { useEffect, useState } from 'react';
+// [Fix Vercel build Next.js 15] useSearchParams() doit être dans un <Suspense> boundary
+// pour permettre le static prerendering. Sans ça, Next refuse de builder la page.
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-export default function AdminResetPasswordPage() {
+function ResetPasswordForm() {
   const router = useRouter();
   const params = useSearchParams();
   const token = params.get('token') || '';
@@ -93,5 +95,18 @@ export default function AdminResetPasswordPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function AdminResetPasswordPage() {
+  // [Fix Vercel build] Suspense obligatoire autour de useSearchParams() en Next.js 15.
+  return (
+    <Suspense fallback={
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="text-white/40 text-sm">Chargement…</div>
+      </div>
+    }>
+      <ResetPasswordForm />
+    </Suspense>
   );
 }
