@@ -71,7 +71,21 @@ export default function AdminDashboardPage() {
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    // [Jeu Concours] Auto-refresh toutes les 30 secondes pour suivi temps réel.
+    const interval = setInterval(load, 30_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // [Jeu Concours 2026] Bandeau actif si on est entre le 29 juin et le 17 juillet 2026.
+  const concoursStart = new Date('2026-06-29T00:00:00Z');
+  const concoursEnd = new Date('2026-07-17T23:59:59Z');
+  const now = new Date();
+  const concoursActif = now >= concoursStart && now <= concoursEnd;
+  const daysRemaining = concoursActif
+    ? Math.ceil((concoursEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    : 0;
 
   const logout = () => {
     localStorage.removeItem('ma1_admin_token');
@@ -126,6 +140,28 @@ export default function AdminDashboardPage() {
       {err && (
         <div className="glass rounded-xl p-3 text-[12px] text-ma1-red border border-ma1-red/20">
           {err} — réessayez ou vérifiez la connexion au backend.
+        </div>
+      )}
+
+      {/* [Jeu Concours 2026] Bandeau actif pendant la période */}
+      {concoursActif && (
+        <div className="glass rounded-xl p-4 border border-[rgba(58,157,176,0.3)] bg-gradient-to-r from-[rgba(58,157,176,0.06)] to-[rgba(126,200,227,0.04)]">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <div className="font-display text-base font-extrabold text-ma1-sky flex items-center gap-2">
+                🏆 Jeu Concours Spécial Bêta MA1 — ACTIF
+              </div>
+              <p className="text-[11px] text-white/55 mt-1">
+                Du 29 juin au 17 juillet 2026 · Auto-refresh toutes les 30 secondes
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="font-display text-2xl font-black bg-gradient-to-br from-[#3a9db0] to-[#7ec8e3] bg-clip-text text-transparent">
+                J-{daysRemaining}
+              </div>
+              <div className="text-[10px] text-white/40 uppercase tracking-wide">jours restants</div>
+            </div>
+          </div>
         </div>
       )}
 

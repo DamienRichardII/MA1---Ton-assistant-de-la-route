@@ -65,7 +65,31 @@ def _escape(s: str | None) -> str:
 
 # ── Templates ────────────────────────────────────────────────────────────
 
+# [Jeu Concours 2026] Période active du jeu concours bêta MA1 — emails spéciaux.
+# Modifiable via env CONCOURS_START / CONCOURS_END (format YYYY-MM-DD).
+from datetime import date as _date_cls
+CONCOURS_START = os.getenv("CONCOURS_START", "2026-06-29")
+CONCOURS_END = os.getenv("CONCOURS_END", "2026-07-17")
+
+
+def _is_concours_period() -> bool:
+    try:
+        today = _date_cls.today()
+        start = _date_cls.fromisoformat(CONCOURS_START)
+        end = _date_cls.fromisoformat(CONCOURS_END)
+        return start <= today <= end
+    except Exception:
+        return False
+
+
 def welcome_user(name: str, email: str) -> dict:
+    """Bascule automatique sur le template Jeu Concours si on est dans la période active."""
+    if _is_concours_period():
+        return _welcome_user_concours(name, email)
+    return _welcome_user_standard(name, email)
+
+
+def _welcome_user_standard(name: str, email: str) -> dict:
     name_safe = _escape(name) or "à bord"
     body = (
         f"<p>Bonjour <strong>{name_safe}</strong>,</p>"
@@ -87,6 +111,50 @@ def welcome_user(name: str, email: str) -> dict:
             "Votre compte MA1 est créé.",
             "MA1 est en bêta ouverte — vos retours sont précieux.",
         ], "Accéder à mon espace MA1", FRONTEND_URL),
+    }
+
+
+def _welcome_user_concours(name: str, email: str) -> dict:
+    """Template spécifique Jeu Concours 29 juin → 17 juillet 2026.
+    Confirme l'inscription au jeu ET à MA1 + rappelle les lots à gagner."""
+    name_safe = _escape(name) or "futur·e champion·ne du Code"
+    body = (
+        f"<p>Bonjour <strong>{name_safe}</strong>,</p>"
+        "<p>🎉 <strong>Félicitations !</strong> Votre compte MA1 vient d'être créé "
+        "et vous êtes officiellement <strong>inscrit·e au Jeu Concours Spécial Bêta MA1</strong>.</p>"
+        "<div style='background:rgba(58,157,176,0.08);border-left:3px solid #7ec8e3;padding:14px 18px;border-radius:8px;margin:18px 0'>"
+        "<p style='margin:0 0 8px;color:#a8dce8;font-weight:bold'>🏆 Trois lots à gagner</p>"
+        "<ul style='color:rgba(208,234,242,0.78);line-height:1.8;padding-left:18px;margin:0'>"
+        "<li><strong>1ᵉʳ</strong> — GTA VI (précommande)</li>"
+        "<li><strong>2ᵉ</strong> — Maillot officiel de l'Équipe de France</li>"
+        "<li><strong>3ᵉ</strong> — Bon d'achat Amazon 100 €</li>"
+        "</ul></div>"
+        "<p><strong>Comment gagner ?</strong> Cumulez un maximum de points d'expérience (XP) jusqu'au "
+        "<strong>17 juillet 2026</strong>. Plus vous faites de QCM, d'examens blancs, plus vous montez "
+        "dans le classement national mis à jour en temps réel.</p>"
+        "<p style='color:rgba(208,234,242,0.65);font-size:13px;margin-top:14px'>"
+        "📌 <strong>Conditions d'éligibilité</strong> à respecter (visibles sur "
+        f"<a href='{FRONTEND_URL}' style='color:#7ec8e3'>ma1.fr</a>) : être inscrit·e à l'auto-école "
+        "ou sur Ornikar, abonné·e à <strong>@DamCompany</strong> et <strong>@MA1</strong> sur Instagram, "
+        "et avoir partagé la publication du concours en story.</p>"
+        "<p style='color:rgba(168,220,232,0.6);font-size:13.5px;margin-top:14px'>Bon courage et "
+        "que le meilleur conducteur (ou la meilleure conductrice 😉) gagne !</p>"
+    )
+    return {
+        "subject": "🏆 Inscription confirmée — Jeu Concours Bêta MA1",
+        "html": _layout("Vous êtes dans le concours !", body, "Commencer à gagner des XP", FRONTEND_URL),
+        "text": _text_fallback("Inscription Jeu Concours MA1 confirmée", [
+            f"Bonjour {name or ''},",
+            "Votre compte MA1 est créé et vous êtes inscrit·e au Jeu Concours Spécial Bêta MA1.",
+            "",
+            "Lots à gagner :",
+            "  1er - GTA VI (précommande)",
+            "  2e  - Maillot Équipe de France",
+            "  3e  - Bon Amazon 100€",
+            "",
+            "Cumulez un max de XP jusqu'au 17 juillet 2026. Classement national en temps réel.",
+            "Conditions sur ma1.fr (inscription auto-école/Ornikar, follow @DamCompany et @MA1, story).",
+        ], "Commencer à gagner des XP", FRONTEND_URL),
     }
 
 
