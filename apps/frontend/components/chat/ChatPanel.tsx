@@ -14,9 +14,8 @@ const CHIPS = [
   { icon: '📏', text: 'Distance de sécurité obligatoire ?' },
 ];
 
-// [Sprint Étape 2 + Fix Vercel build] Sanitisation XSS — plus de dangerouslySetInnerHTML.
-// Échappe TOUT HTML reçu de l'IA, puis n'autorise QUE le markdown léger **gras** et *italique*
-// + saut de ligne via token { kind: 'br' }.
+// [Sprint Étape 2] Sanitisation XSS — remplace l'ancien `fmt` + dangerouslySetInnerHTML.
+// Échappe TOUT HTML reçu de l'IA, puis n'autorise QUE le markdown léger **gras** et *italique*.
 // Aucune balise tierce n'est jamais injectée brute.
 function escapeHtml(raw: string): string {
   return raw
@@ -27,25 +26,22 @@ function escapeHtml(raw: string): string {
     .replace(/'/g, '&#39;');
 }
 
-// Union exhaustive — chaque variant DOIT être géré dans SafeMarkdown.
 type Token =
   | { kind: 'br' }
   | { kind: 'text'; value: string }
   | { kind: 'strong'; value: string }
   | { kind: 'em'; value: string };
 
-function parseSafe(raw: string): Token[] {
+function parseSafe(raw: string): Token[][] {
   const safe = escapeHtml(raw);
   const lines = safe.split(/\n/);
-  const out: Token[] = [];
-  lines.forEach((line, li) => {
+  return lines.map((line) => {
+    const tokens: Token[] = [];
     let rest = line;
     while (rest.length > 0) {
       const bold = rest.match(/\*\*(.+?)\*\*/);
       const italic = rest.match(/\*(.+?)\*/);
-      let first:
-        | { kind: 'strong' | 'em'; value: string; idx: number; len: number }
-        | null = null;
+      let first: { kind: 'strong' | 'em'; value: string; idx: number; len: number } | null = null;
       if (bold && bold.index !== undefined) {
         first = { kind: 'strong', value: bold[1], idx: bold.index, len: bold[0].length };
       }
@@ -55,39 +51,43 @@ function parseSafe(raw: string): Token[] {
         }
       }
       if (!first) {
-        out.push({ kind: 'text', value: rest });
+        tokens.push({ kind: 'text', value: rest });
         break;
       }
-      if (first.idx > 0) out.push({ kind: 'text', value: rest.slice(0, first.idx) });
-      out.push({ kind: first.kind, value: first.value });
+      if (first.idx > 0) tokens.push({ kind: 'text', value: rest.slice(0, first.idx) });
+      tokens.push({ kind: first.kind, value: first.value });
       rest = rest.slice(first.idx + first.len);
     }
-    if (li < lines.length - 1) out.push({ kind: 'br' });
+    return tokens;
   });
-  return out;
 }
 
 function SafeMarkdown({ text }: { text: string }) {
-  const tokens = parseSafe(text);
+  const lines = parseSafe(text);
   return (
     <>
-      {tokens.map((t, ti) => {
-        // [Fix Vercel build] Switch exhaustif — chaque variant du type Token est géré.
-        // TypeScript narrowing garantit que `t.value` n'est accédé QUE sur les variants
-        // qui le possèdent. Le `default: return null` couvre les futurs ajouts au type.
-        switch (t.kind) {
-          case 'br':
-            return <br key={ti} />;
-          case 'strong':
-            return <strong key={ti}>{t.value}</strong>;
-          case 'em':
-            return <em key={ti}>{t.value}</em>;
-          case 'text':
-            return <span key={ti}>{t.value}</span>;
-          default:
-            return null;
-        }
-      })}
+      {lines.map((tokens, li) => (
+        <span key={li}>
+          {tokens.map((t, ti) => {
+            // [Fix Vercel build] Switch exhaustif — chaque variant du type Token est géré.
+            // TypeScript narrowing garantit que `t.value` n'est accédé QUE sur les variants
+            // qui le possèdent. Le `default: return null` couvre les futurs ajouts au type.
+            switch (t.kind) {
+              case 'br':
+                return <br key={ti} />;
+              case 'strong':
+                return <strong key={ti}>{t.value}</strong>;
+              case 'em':
+                return <em key={ti}>{t.value}</em>;
+              case 'text':
+                return <span key={ti}>{t.value}</span>;
+              default:
+                return null;
+            }
+          })}
+          {li < lines.length - 1 ? <br /> : null}
+        </span>
+      ))}
     </>
   );
 }

@@ -1,7 +1,9 @@
+# [Sprint Étape 3] Adapté pour la nouvelle structure monorepo apps/frontend + apps/backend
 version: '3.8'
 services:
   frontend:
-    build: .
+    build:
+      context: ./apps/frontend
     ports:
       - "3000:3000"
     environment:
@@ -11,11 +13,12 @@ services:
       - backend
 
   backend:
-    build: ./backend
+    build:
+      context: ./apps/backend
     ports:
       - "8000:8000"
     env_file:
-      - ./backend/.env
+      - ./apps/backend/.env
     volumes:
       - backend-data:/app/data
     healthcheck:
