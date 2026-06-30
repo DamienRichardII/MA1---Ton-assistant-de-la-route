@@ -10,6 +10,7 @@ import { XPToast } from '@/components/gamification/XPToast';
 import { RGPDBanner } from '@/components/ui/RGPDBanner';
 import { Onboarding } from '@/components/ui/Onboarding';
 import { NotificationPrompt } from '@/components/ui/NotificationPrompt';
+import { HeartbeatPing } from '@/components/presence/HeartbeatPing';
 
 export const metadata: Metadata = {
   title: 'MA1 — Ton Assistant IA du Code de la Route',
@@ -49,6 +50,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </div>
         <MobileNav />
         <RGPDBanner />
+        {/* [Fix Admin realtime] Ping /presence/heartbeat toutes les 45s si connecté */}
+        <HeartbeatPing />
       </body>
     </html>
   );

@@ -1603,7 +1603,49 @@ async def admin_kpis(_admin: str = Depends(require_admin)):
     sb = get_supabase()
     online = presence_svc.count_online_now(sb)
     sc = support_svc.support_counts_admin(sb)
-    return reporting_svc.compute_kpis(sb, presence_count=online, support_counts=sc)
+    # [Fix Admin realtime] KPIs étendus avec new_today/new_week/best_xp/avg_success_rate
+    k = reporting_svc.compute_kpis_extended(sb, presence_count=online, support_counts=sc)
+    print(f"[ADMIN] kpis loaded users={k.get('total_users')} online={k.get('online_now')} new_today={k.get('new_today')}", flush=True)
+    return k
+
+
+@app.get("/admin/users")
+async def admin_list_users(search: str = "", filter: str = "all",
+                            sort: str = "recent", limit: int = 100,
+                            _admin: str = Depends(require_admin)):
+    """[Fix Admin realtime] Liste utilisateurs avec recherche/filtres/tri."""
+    if not HAS_ADMIN_STACK:
+        return {"users": [], "total": 0}
+    users = reporting_svc.list_users(get_supabase(), search=search, filter_kind=filter,
+                                     sort=sort, limit=min(max(limit, 1), 500))
+    active = sum(1 for u in users if u.get("is_active"))
+    print(f"[ADMIN] users count={len(users)} active={active} filter={filter} sort={sort}", flush=True)
+    return {"users": users, "total": len(users), "active_count": active}
+
+
+@app.get("/admin/activity")
+async def admin_activity(limit: int = 50, _admin: str = Depends(require_admin)):
+    """[Fix Admin realtime] Activité récente (auth events + analytics)."""
+    if not HAS_ADMIN_STACK:
+        return {"activity": []}
+    events = reporting_svc.recent_activity(get_supabase(), limit=min(max(limit, 1), 200))
+    return {"activity": events}
+
+
+@app.get("/admin/recent-signups")
+async def admin_recent_signups(limit: int = 20, _admin: str = Depends(require_admin)):
+    """[Fix Admin realtime] Comptes créés récents."""
+    if not HAS_ADMIN_STACK:
+        return {"signups": []}
+    return {"signups": reporting_svc.recent_signups(get_supabase(), limit=min(max(limit, 1), 100))}
+
+
+@app.get("/admin/recent-errors")
+async def admin_recent_errors(limit: int = 20, _admin: str = Depends(require_admin)):
+    """[Fix Admin realtime] Dernières réponses QCM incorrectes."""
+    if not HAS_ADMIN_STACK:
+        return {"errors": []}
+    return {"errors": reporting_svc.recent_qcm_errors(get_supabase(), limit=min(max(limit, 1), 100))}
 
 
 @app.get("/admin/leaderboard")
@@ -1625,10 +1667,10 @@ async def admin_realtime(_admin: str = Depends(require_admin)):
     if not HAS_ADMIN_STACK:
         return {"online_now": 0, "recent_active": []}
     sb = get_supabase()
-    return {
-        "online_now": presence_svc.count_online_now(sb),
-        "recent_active": presence_svc.list_recent_active(sb, limit=20),
-    }
+    online = presence_svc.count_online_now(sb)
+    recent = presence_svc.list_recent_active(sb, limit=20)
+    print(f"[ADMIN] active users count={online}", flush=True)
+    return {"online_now": online, "recent_active": recent}
 
 
 @app.get("/admin/weekly-summary")
@@ -1784,5 +1826,7 @@ async def presence_heartbeat(req: PresenceHeartbeatRequest, request: Request,
     ua = request.headers.get("user-agent", "")
     ok = presence_svc.record_heartbeat(get_supabase(), user_id=req.user_id,
                                        session_id=req.session_id or "", user_agent=ua, ip=ip)
+    # [Fix Admin realtime] Log discret (sans email/IP pour éviter PII)
+    print(f"[PRESENCE] heartbeat user_id={req.user_id[:12]}... session={(req.session_id or 'default')[:10]} ok={ok}", flush=True)
     return {"recorded": ok, "ts": datetime.now(timezone.utc).isoformat()}
 
