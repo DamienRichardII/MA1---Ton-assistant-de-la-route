@@ -101,7 +101,7 @@ def leaderboard(supabase, limit: int = 20) -> list[dict]:
     try:
         # Profiles + users joins
         prof = supabase.table("profiles").select(
-            "user_id, level, xp, score_total, score_correct"
+            "user_id, level, xp, score_total, score_correct, streak_days"
         ).order("xp", desc=True).limit(limit).execute()
         rows = getattr(prof, "data", None) or []
         if not rows:
@@ -140,6 +140,7 @@ def leaderboard(supabase, limit: int = 20) -> list[dict]:
                 "level": p.get("level", "debutant"),
                 "qcm_total": score_total,
                 "success_rate": rate,
+                "streak": p.get("streak_days", 0) or 0,
                 "last_seen_at": last_seen,
             })
         return out
@@ -472,4 +473,96 @@ def weekly_summary(supabase) -> dict:
         "weakest": weakest,
         "average_success_rate": avg,
         "summary_text": summary_text.strip(),
+    }
+
+
+# ── [Sprint Classement/Espace joueur] Ajouts ──────────────────────────────
+
+def _success_rate2(correct: int, total: int) -> int:
+    return round((correct / max(total, 1)) * 100) if total else 0
+
+
+def public_leaderboard(supabase, limit: int = 20) -> list[dict]:
+    """Classement PUBLIC : aucune donnee perso (pas d'email)."""
+    rows = leaderboard(supabase, limit=limit)
+    out = []
+    for i, p in enumerate(rows, start=1):
+        out.append({
+            "rank": i,
+            "user_id": p.get("user_id"),
+            "name": p.get("name") or "Joueur",
+            "xp": p.get("xp", 0),
+            "level": p.get("level", "debutant"),
+            "qcm_total": p.get("qcm_total", 0),
+            "success_rate": p.get("success_rate", 0),
+            "streak": p.get("streak", 0),
+        })
+    return out
+
+
+def user_rank(supabase, user_id: str) -> dict:
+    if supabase is None or not user_id:
+        return {"rank": None, "total_players": 0}
+    try:
+        r = supabase.table("profiles").select("user_id, xp").order("xp", desc=True).execute()
+        rows = getattr(r, "data", None) or []
+        total = len(rows)
+        for i, row in enumerate(rows, start=1):
+            if row.get("user_id") == user_id:
+                return {"rank": i, "total_players": total, "xp": row.get("xp", 0) or 0}
+        return {"rank": None, "total_players": total}
+    except Exception:
+        return {"rank": None, "total_players": 0}
+
+
+def user_theme_stats(supabase, user_id: str) -> list[dict]:
+    if supabase is None or not user_id:
+        return []
+    try:
+        r = supabase.table("qcm_attempts").select("topic, is_correct").eq("user_id", user_id).execute()
+        rows = getattr(r, "data", None) or []
+    except Exception:
+        return []
+    agg = {}
+    for row in rows:
+        t = row.get("topic") or "autre"
+        a = agg.setdefault(t, {"total": 0, "correct": 0})
+        a["total"] += 1
+        if row.get("is_correct"):
+            a["correct"] += 1
+    out = []
+    for t, a in agg.items():
+        out.append({
+            "topic": t,
+            "label": THEME_LABELS.get(t, t),
+            "total_answers": a["total"],
+            "success_rate": _success_rate2(a["correct"], a["total"]),
+        })
+    out.sort(key=lambda x: x["total_answers"], reverse=True)
+    return out
+
+
+def user_stats(supabase, user_id: str) -> dict:
+    if supabase is None or not user_id:
+        return {}
+    prof = {}
+    try:
+        pr = supabase.table("profiles").select(
+            "level, xp, score_total, score_correct, streak_days, weak_topics, strong_topics"
+        ).eq("user_id", user_id).single().execute()
+        prof = getattr(pr, "data", None) or {}
+    except Exception:
+        prof = {}
+    return {
+        "level": prof.get("level", "debutant"),
+        "xp": prof.get("xp", 0) or 0,
+        "score_total": prof.get("score_total", 0) or 0,
+        "score_correct": prof.get("score_correct", 0) or 0,
+        "success_rate": _success_rate2(prof.get("score_correct", 0) or 0, prof.get("score_total", 0) or 0),
+        "streak_days": prof.get("streak_days", 0) or 0,
+        "qcm_count": _safe_count(supabase, "qcm_attempts", user_id=user_id),
+        "exam_count": _safe_count(supabase, "exam_attempts", user_id=user_id),
+        "weak_topics": prof.get("weak_topics", []) or [],
+        "strong_topics": prof.get("strong_topics", []) or [],
+        "themes": user_theme_stats(supabase, user_id),
     }

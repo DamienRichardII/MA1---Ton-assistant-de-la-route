@@ -10,6 +10,7 @@ import { XPToast } from '@/components/gamification/XPToast';
 import { RGPDBanner } from '@/components/ui/RGPDBanner';
 import { Onboarding } from '@/components/ui/Onboarding';
 import { NotificationPrompt } from '@/components/ui/NotificationPrompt';
+import { PresenceTracker } from '@/components/ui/PresenceTracker';
 import { HeartbeatPing } from '@/components/presence/HeartbeatPing';
 
 export const metadata: Metadata = {
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Starfield />
         <Onboarding />
         <NotificationPrompt />
+        <PresenceTracker />
         <AmbientGlow />
         <XPToast />
         <Header />

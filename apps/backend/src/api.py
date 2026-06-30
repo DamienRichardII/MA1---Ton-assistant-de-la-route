@@ -32,6 +32,7 @@ try:
     import support_service as support_svc
     import presence_service as presence_svc
     import reporting_service as reporting_svc
+    import xp_service as xp_svc
     HAS_ADMIN_STACK = True
 except ImportError as _e:
     print(f"[WARN] Stack admin/support non chargée: {_e}")
@@ -203,7 +204,10 @@ CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-sonnet-4-20250514")
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_ANON_KEY", "")
+# [FIX presence/admin/XP] Serveur de confiance : cle service_role pour ecrire malgre RLS.
+SUPABASE_KEY = (os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+               or os.getenv("SUPABASE_ANON_KEY", ""))
+_SUPABASE_KEY_IS_SERVICE = bool(os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_SERVICE_ROLE_KEY"))
 
 PLAN_LIMITS = {
     "free":      {"questions_per_day": 10,  "qcm_per_month": 80,    "exam_per_month": 1},
@@ -342,17 +346,29 @@ def get_supabase():
     try:
         from supabase import create_client
         _supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-        print("[OK Supabase] Connecte")
+        _mode = "service_role (RLS bypass)" if _SUPABASE_KEY_IS_SERVICE else "ANON (ecritures bloquees par RLS)"
+        print(f"[OK Supabase] Connecte - cle={_mode}")
+        if not _SUPABASE_KEY_IS_SERVICE:
+            print("[WARN Supabase] SUPABASE_SERVICE_KEY absent : heartbeat/profiles/attempts echoueront (RLS). A definir sur Railway.")
         return _supabase
     except Exception as e:
         print(f"[WARN Supabase] {e}")
         return None
 
+_PROFILE_COLS = {
+    "level", "score_total", "score_correct", "weak_topics", "strong_topics",
+    "theme_scores", "plan_day", "plan_started", "exam_results", "streak_days", "last_seen",
+}
+
 async def sb_upsert_profile(uid, profile):
     sb = get_supabase()
     if sb:
-        try: sb.table("profiles").upsert({"user_id": uid, **profile}).execute()
-        except: pass
+        row = {"user_id": uid}
+        for k, v in profile.items():
+            if k in _PROFILE_COLS:
+                row[k] = v
+        try: sb.table("profiles").upsert(row, on_conflict="user_id").execute()
+        except Exception as e: print(f"[profiles] upsert warn: {e}")
 
 async def sb_track(event):
     sb = get_supabase()
@@ -487,8 +503,16 @@ async def auth_register(req:AuthRegisterRequest):
     _users[email]={"user_id":uid,"email":email,"name":req.name,"pw_hash":hash_pw(req.password),"token":token,"plan":"free","birth_year":req.birth_year,"created":datetime.now(timezone.utc).isoformat()}
     sb=get_supabase()
     if sb:
-        try: sb.table("users").insert({"user_id":uid,"email":email,"name":req.name,"plan":"free"}).execute()
-        except: pass
+        user_row={"user_id":uid,"email":email,"name":req.name or "","password_hash":_users[email]["pw_hash"],"plan":"free"}
+        if req.birth_year:
+            user_row["birth_date"]=f"{int(req.birth_year)}-01-01"
+        try: sb.table("users").upsert(user_row, on_conflict="user_id").execute()
+        except Exception as e: print(f"[users] insert ERROR: {e}", flush=True)
+        try: sb.table("profiles").upsert({"user_id":uid,"level":"debutant","xp":0}, on_conflict="user_id").execute()
+        except Exception as e: print(f"[profiles] seed ERROR: {e}", flush=True)
+    if HAS_ADMIN_STACK:
+        try: xp_svc.award_xp(sb, user_id=uid, type_="account_created")
+        except Exception as e: print(f"[XP] account_created warn: {e}")
     await sb_track({"user_id":uid,"event":"register","ts":time.time()})
     # [Fix email welcome] Logs explicites + on lit le status renvoyé par send_email
     # (avant : le status était jeté + pas de log si "skipped" ou "failed" propre côté Resend)
@@ -535,6 +559,9 @@ async def auth_login(req:AuthLoginRequest):
     user=_users.get(email)
     if not user or not check_pw(req.password, user["pw_hash"]): raise HTTPException(401,"Email ou mot de passe incorrect")
     token=mk_token(user["user_id"]); user["token"]=token
+    if HAS_ADMIN_STACK:
+        try: xp_svc.award_xp(get_supabase(), user_id=user["user_id"], type_="daily_login")
+        except Exception as e: print(f"[XP] daily_login warn: {e}")
     await sb_track({"user_id":user["user_id"],"event":"login","ts":time.time()})
     # [Sprint Admin/Emails/Support] Email notification de connexion (throttle 1/h via email_service) + log
     if HAS_ADMIN_STACK:
@@ -685,7 +712,15 @@ async def qcm_result(req:QCMResultRequest, _uid: str = Depends(require_auth)):
     update_profile(req.user_id,req.topic,req.correct)
     p=get_profile(req.user_id)
     await sb_upsert_profile(req.user_id,p)
-    return {"profile":p}
+    sb=get_supabase()
+    if sb is not None:
+        try: sb.table("qcm_attempts").insert({"user_id":req.user_id,"topic":req.topic,"is_correct":bool(req.correct)}).execute()
+        except Exception as e: print(f"[qcm_attempts] insert warn: {e}")
+    xp_gain=0
+    if HAS_ADMIN_STACK and req.correct:
+        try: xp_gain=xp_svc.award_xp(sb, user_id=req.user_id, type_="qcm_correct", meta={"topic":req.topic})
+        except Exception as e: print(f"[XP] qcm_correct warn: {e}")
+    return {"profile":p,"xp_gain":xp_gain}
 
 # EXAM
 @app.post("/exam/result")
@@ -699,8 +734,19 @@ async def exam_result(req:ExamResultRequest, _uid: str = Depends(require_auth)):
     p.setdefault("exam_results",[]).append(r)
     if len(p["exam_results"])>50: p["exam_results"]=p["exam_results"][-50:]
     await sb_upsert_profile(req.user_id,p)
+    sb=get_supabase()
+    if sb is not None:
+        try: sb.table("exam_attempts").insert({"user_id":req.user_id,"correct_count":req.correct,"total_count":req.total,"pct":r["pct"],"passed":r["passed"],"duration_seconds":req.time_seconds}).execute()
+        except Exception as e: print(f"[exam_attempts] insert warn: {e}")
+    xp_gain=0
+    if HAS_ADMIN_STACK:
+        try:
+            xp_gain=xp_svc.award_xp(sb, user_id=req.user_id, type_="exam_completed")
+            if r["passed"]:
+                xp_gain+=xp_svc.award_xp(sb, user_id=req.user_id, type_="exam_passed")
+        except Exception as e: print(f"[XP] exam warn: {e}")
     await sb_track({"user_id":req.user_id,"event":"exam","data":r,"ts":time.time()})
-    return {"profile":p,"result":r}
+    return {"profile":p,"result":r,"xp_gain":xp_gain}
 
 # 30 DAY PLAN
 @app.get("/plan/30days")
@@ -1103,7 +1149,16 @@ _referrals = {}  # user_id -> {code, referred: []}
 
 @app.get("/leaderboard")
 async def leaderboard(limit: int = 20):
-    """Global XP leaderboard."""
+    """Classement XP public — source Supabase (stable), fallback memoire. Aucune donnee perso."""
+    limit = min(max(limit, 1), 100)
+    if HAS_ADMIN_STACK:
+        try:
+            rows = reporting_svc.public_leaderboard(get_supabase(), limit=limit)
+            if rows:
+                print(f"[LEADERBOARD] refreshed count={len(rows)} (supabase)", flush=True)
+                return {"leaderboard": rows, "total": len(rows), "source": "supabase"}
+        except Exception as e:
+            print(f"[LEADERBOARD] supabase warn: {e}")
     entries = []
     for uid, p in _profiles.items():
         name = uid
@@ -1121,7 +1176,10 @@ async def leaderboard(limit: int = 20):
             "success_rate": round(p["score_correct"] / max(p["score_total"], 1) * 100),
         })
     entries.sort(key=lambda x: x["xp"], reverse=True)
-    return {"leaderboard": entries[:limit], "total": len(entries)}
+    ranked = entries[:limit]
+    for i, e in enumerate(ranked, start=1):
+        e["rank"] = i
+    return {"leaderboard": ranked, "total": len(entries), "source": "memory"}
 
 # REFERRAL / PARRAINAGE
 @app.get("/referral/{user_id}")
@@ -1524,6 +1582,11 @@ class SupportReplyRequest(BaseModel):
 class PresenceHeartbeatRequest(BaseModel):
     user_id: str
     session_id: Optional[str] = ""
+    current_module: Optional[str] = ""
+
+class XPEventRequest(BaseModel):
+    type: str
+    meta: Optional[dict] = None
 
 
 # ── ADMIN AUTH ─────────────────────────────────────────────────────────────
@@ -1680,6 +1743,94 @@ async def admin_weekly_summary(_admin: str = Depends(require_admin)):
     return reporting_svc.weekly_summary(get_supabase())
 
 
+# ── ESPACE JOUEUR — Utilisateur connecté ───────────────────────────────────
+
+def _user_identity(uid: str) -> dict:
+    for u in _users.values():
+        if u.get("user_id") == uid:
+            return {"email": u.get("email", ""), "name": u.get("name", "")}
+    sb = get_supabase()
+    if sb is not None:
+        try:
+            r = sb.table("users").select("email,name").eq("user_id", uid).single().execute()
+            d = getattr(r, "data", None) or {}
+            return {"email": d.get("email", ""), "name": d.get("name", "")}
+        except Exception:
+            pass
+    return {"email": "", "name": ""}
+
+
+@app.get("/user/me")
+async def user_me(_uid: str = Depends(require_auth)):
+    ident = _user_identity(_uid)
+    if HAS_ADMIN_STACK:
+        sb = get_supabase()
+        stats = reporting_svc.user_stats(sb, _uid)
+        rank = reporting_svc.user_rank(sb, _uid)
+    else:
+        stats, rank = {}, {"rank": None, "total_players": 0}
+    if not stats:
+        p = get_profile(_uid)
+        stats = {
+            "level": p.get("level", "debutant"), "xp": p.get("xp", 0),
+            "score_total": p.get("score_total", 0), "score_correct": p.get("score_correct", 0),
+            "success_rate": round(p["score_correct"]/max(p["score_total"],1)*100),
+            "streak_days": p.get("streak_days", 0),
+            "qcm_count": p.get("score_total", 0), "exam_count": len(p.get("exam_results", [])),
+            "weak_topics": p.get("weak_topics", []), "strong_topics": p.get("strong_topics", []),
+            "themes": [],
+        }
+    return {"user_id": _uid, "name": ident["name"], "stats": stats, "rank": rank}
+
+
+@app.get("/user/stats")
+async def user_stats_ep(_uid: str = Depends(require_auth)):
+    if not HAS_ADMIN_STACK:
+        return {}
+    return reporting_svc.user_stats(get_supabase(), _uid)
+
+
+@app.get("/user/rank")
+async def user_rank_ep(_uid: str = Depends(require_auth)):
+    if not HAS_ADMIN_STACK:
+        return {"rank": None, "total_players": 0}
+    return reporting_svc.user_rank(get_supabase(), _uid)
+
+
+@app.get("/user/theme-stats")
+async def user_theme_stats_ep(_uid: str = Depends(require_auth)):
+    if not HAS_ADMIN_STACK:
+        return {"themes": []}
+    return {"themes": reporting_svc.user_theme_stats(get_supabase(), _uid)}
+
+
+@app.get("/user/activity")
+async def user_activity_ep(limit: int = 20, _uid: str = Depends(require_auth)):
+    if not HAS_ADMIN_STACK:
+        return {"events": []}
+    return {"events": xp_svc.list_events(get_supabase(), _uid, limit=min(max(limit, 1), 100))}
+
+
+@app.get("/user/xp-events")
+async def user_xp_events_ep(limit: int = 30, _uid: str = Depends(require_auth)):
+    if not HAS_ADMIN_STACK:
+        return {"events": []}
+    return {"events": xp_svc.list_events(get_supabase(), _uid, limit=min(max(limit, 1), 100))}
+
+
+_CLIENT_XP_TYPES = {"assistant_useful"}
+
+
+@app.post("/xp/event")
+async def xp_event_ep(req: XPEventRequest, _uid: str = Depends(require_auth)):
+    if not HAS_ADMIN_STACK:
+        return {"awarded": 0, "reason": "service indisponible"}
+    if req.type not in _CLIENT_XP_TYPES:
+        raise HTTPException(400, "Type XP non autorisé via cette route.")
+    awarded = xp_svc.award_xp(get_supabase(), user_id=_uid, type_=req.type, meta=req.meta or {})
+    return {"awarded": awarded, "type": req.type}
+
+
 # ── SUPPORT — Utilisateur ──────────────────────────────────────────────────
 
 @app.post("/support/threads")
@@ -1824,9 +1975,11 @@ async def presence_heartbeat(req: PresenceHeartbeatRequest, request: Request,
             raise HTTPException(403, "user_id ne correspond pas à votre compte.")
     ip = request.client.host if request.client else None
     ua = request.headers.get("user-agent", "")
+    module = (req.current_module or "")[:32]
     ok = presence_svc.record_heartbeat(get_supabase(), user_id=req.user_id,
-                                       session_id=req.session_id or "", user_agent=ua, ip=ip)
-    # [Fix Admin realtime] Log discret (sans email/IP pour éviter PII)
-    print(f"[PRESENCE] heartbeat user_id={req.user_id[:12]}... session={(req.session_id or 'default')[:10]} ok={ok}", flush=True)
+                                       session_id=req.session_id or "", user_agent=ua, ip=ip,
+                                       current_module=module)
+    # Log discret (sans email/IP pour éviter PII)
+    print(f"[PRESENCE] heartbeat user_id={req.user_id[:12]}... module={module or '-'} ok={ok}", flush=True)
     return {"recorded": ok, "ts": datetime.now(timezone.utc).isoformat()}
 

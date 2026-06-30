@@ -7,10 +7,16 @@ class MA1Api {
     this.baseUrl = API_URL;
   }
 
+  private authHeader(): Record<string, string> {
+    if (typeof window === 'undefined') return {};
+    const tok = window.localStorage.getItem('ma1_token');
+    return tok ? { Authorization: `Bearer ${tok}` } : {};
+  }
+
   private async request(path: string, options?: RequestInit) {
     const res = await fetch(`${this.baseUrl}${path}`, {
       ...options,
-      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      headers: { 'Content-Type': 'application/json', ...this.authHeader(), ...options?.headers },
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: 'Erreur serveur' }));
@@ -148,6 +154,28 @@ class MA1Api {
       method: 'POST',
       body: JSON.stringify({ user_id: userId, event, data: data || {} }),
     }).catch(() => {}); // Silent fail
+  }
+
+  // [Sprint] Présence temps réel — heartbeat (uniquement si connecté)
+  async heartbeat(userId: string, currentModule?: string) {
+    return this.request('/presence/heartbeat', {
+      method: 'POST',
+      body: JSON.stringify({ user_id: userId, current_module: currentModule || '' }),
+    }).catch(() => {});
+  }
+
+  // [Sprint] Espace joueur — stats réelles serveur (XP stable)
+  async getUserMe() { return this.request('/user/me'); }
+  async getUserStats() { return this.request('/user/stats'); }
+  async getUserRank() { return this.request('/user/rank'); }
+  async getUserThemeStats() { return this.request('/user/theme-stats'); }
+  async getUserActivity(limit = 20) { return this.request(`/user/activity?limit=${limit}`); }
+  async getXpEvents(limit = 30) { return this.request(`/user/xp-events?limit=${limit}`); }
+  async sendXpEvent(type: string, meta?: Record<string, any>) {
+    return this.request('/xp/event', {
+      method: 'POST',
+      body: JSON.stringify({ type, meta: meta || {} }),
+    }).catch(() => ({ awarded: 0 }));
   }
 
   // Health

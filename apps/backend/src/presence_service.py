@@ -14,21 +14,27 @@ def _hash_ip(ip: Optional[str]) -> Optional[str]:
 
 
 def record_heartbeat(supabase, *, user_id: str, session_id: str = "",
-                     user_agent: str = "", ip: Optional[str] = None) -> bool:
+                     user_agent: str = "", ip: Optional[str] = None,
+                     current_module: str = "") -> bool:
     if supabase is None or not user_id:
         return False
     try:
         now = datetime.now(timezone.utc).isoformat()
-        # upsert sur (user_id, session_id) — la contrainte UNIQUE permet ON CONFLICT.
-        supabase.table("user_sessions").upsert({
+        row = {
             "user_id": user_id,
             "session_id": session_id or "default",
             "last_seen_at": now,
             "user_agent": (user_agent or "")[:200],
             "ip_hash": _hash_ip(ip),
-        }, on_conflict="user_id,session_id").execute()
+        }
+        if current_module:
+            row["current_module"] = current_module[:32]
+        supabase.table("user_sessions").upsert(
+            row, on_conflict="user_id,session_id"
+        ).execute()
         return True
-    except Exception:
+    except Exception as e:
+        print(f"[PRESENCE] upsert ERROR user={user_id}: {e}")
         return False
 
 
@@ -50,8 +56,27 @@ def list_recent_active(supabase, limit: int = 20) -> list[dict]:
         return []
     try:
         r = supabase.table("user_sessions").select(
-            "user_id, last_seen_at, user_agent"
+            "user_id, last_seen_at, user_agent, current_module"
         ).order("last_seen_at", desc=True).limit(limit).execute()
         return getattr(r, "data", None) or []
+    except Exception:
+        return []
+
+
+def list_online_now(supabase, limit: int = 50) -> list[dict]:
+    if supabase is None:
+        return []
+    cutoff = (datetime.now(timezone.utc) - timedelta(minutes=PRESENCE_WINDOW_MINUTES)).isoformat()
+    try:
+        r = supabase.table("user_sessions").select(
+            "user_id, last_seen_at, current_module"
+        ).gte("last_seen_at", cutoff).order("last_seen_at", desc=True).limit(limit).execute()
+        seen, out = set(), []
+        for row in (getattr(r, "data", None) or []):
+            uid = row.get("user_id")
+            if uid in seen:
+                continue
+            seen.add(uid); out.append(row)
+        return out
     except Exception:
         return []

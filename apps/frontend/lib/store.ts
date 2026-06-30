@@ -49,6 +49,7 @@ export interface AppState {
   incrementQuestion: () => void;
   recordAnswer: (correct: boolean) => void;
   addXP: (amount: number) => void;
+  setServerXp: (xp: number) => void;
   setTopic: (topic: string) => void;
   setPlan: (plan: 'free' | 'premium' | 'autoecole') => void;
 }
@@ -100,6 +101,7 @@ export const useStore = create<AppState>()(
       })),
 
       addXP: (amount) => set((state) => ({ xp: state.xp + amount })),
+      setServerXp: (xp) => set((state) => ({ xp, profile: { ...state.profile, xp } })),
       setTopic: (topic) => set({ topic }),
       setPlan: (plan) => set({ plan, qMax: plan === 'free' ? 10 : 999 }),
     }),
