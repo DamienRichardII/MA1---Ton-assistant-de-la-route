@@ -16,6 +16,26 @@ interface Kpis {
   users_with_exam: number;
   support_total: number;
   support_unread_admin: number;
+  // [Fix Admin realtime] KPIs étendus
+  new_today?: number;
+  new_week?: number;
+  best_xp?: number;
+  avg_success_rate?: number;
+}
+interface UserRow {
+  user_id: string;
+  email: string;
+  name: string;
+  plan: string;
+  created_at?: string;
+  last_login_at?: string;
+  last_seen_at?: string;
+  is_active: boolean;
+  is_new: boolean;
+  xp: number;
+  level: string;
+  qcm_total: number;
+  success_rate: number;
 }
 interface LeaderRow {
   user_id: string; name: string; email: string;
@@ -52,6 +72,13 @@ export default function AdminDashboardPage() {
   const [err, setErr] = useState<string|null>(null);
   const [copied, setCopied] = useState(false);
 
+  // [Fix Admin realtime] Liste utilisateurs interactive + filtres
+  const [users, setUsers] = useState<UserRow[]>([]);
+  const [usersTotal, setUsersTotal] = useState(0);
+  const [userSearch, setUserSearch] = useState('');
+  const [userFilter, setUserFilter] = useState<'all'|'active'|'inactive'|'new'>('all');
+  const [userSort, setUserSort] = useState<'recent'|'xp'|'last_seen'>('recent');
+
   const load = async () => {
     setLoading(true); setErr(null);
     try {
@@ -71,12 +98,40 @@ export default function AdminDashboardPage() {
     } finally { setLoading(false); }
   };
 
+  const loadUsers = async () => {
+    try {
+      const params = new URLSearchParams({
+        search: userSearch.trim(),
+        filter: userFilter,
+        sort: userSort,
+        limit: '100',
+      });
+      const d = await authFetch(`/admin/users?${params.toString()}`);
+      setUsers(d.users || []);
+      setUsersTotal(d.total || 0);
+    } catch (e: any) {
+      if (e?.message === 'NO_TOKEN' || e?.message === 'UNAUTHORIZED') {
+        localStorage.removeItem('ma1_admin_token'); router.replace('/admin/login'); return;
+      }
+      // Erreur silencieuse pour cette section (autres sections restent visibles)
+    }
+  };
+
   useEffect(() => {
     load();
+    loadUsers();
     // [Jeu Concours] Auto-refresh toutes les 30 secondes pour suivi temps réel.
-    const interval = setInterval(load, 30_000);
+    const interval = setInterval(() => { load(); loadUsers(); }, 30_000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // [Fix Admin realtime] Recharger users quand recherche/filtre/tri changent.
+  useEffect(() => {
+    const t = setTimeout(loadUsers, 350);  // debounce léger
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userSearch, userFilter, userSort]);
 
   // [Jeu Concours 2026] Bandeau actif si on est entre le 29 juin et le 17 juillet 2026.
   const concoursStart = new Date('2026-06-29T00:00:00Z');
@@ -165,16 +220,20 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      {/* KPI */}
+      {/* KPI — [Fix Admin realtime] inclut new_today, new_week, best_xp, avg_success_rate si présents */}
       {kpis && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
             { v: kpis.total_users, l: 'Comptes créés' },
             { v: kpis.online_now, l: 'En ligne maintenant' },
+            { v: kpis.new_today ?? 0, l: 'Nouveaux aujourd\'hui' },
+            { v: kpis.new_week ?? 0, l: 'Nouveaux 7 jours' },
             { v: kpis.active_today, l: 'Actifs aujourd\'hui' },
             { v: kpis.active_week, l: 'Actifs 7 jours' },
             { v: kpis.users_with_qcm, l: 'Ont fait ≥1 QCM' },
             { v: kpis.users_with_exam, l: 'Ont fait ≥1 examen' },
+            { v: kpis.best_xp ?? 0, l: 'Meilleur XP' },
+            { v: `${kpis.avg_success_rate ?? 0}%`, l: 'Réussite moyenne' },
             { v: kpis.support_total, l: 'Messages support' },
             { v: kpis.support_unread_admin, l: 'Support non lus' },
           ].map((k, i) => (
@@ -185,6 +244,83 @@ export default function AdminDashboardPage() {
           ))}
         </div>
       )}
+
+      {/* [Fix Admin realtime] Section Utilisateurs interactive — recherche + filtres + tri */}
+      <div className="glass rounded-xl p-4">
+        <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+          <h3 className="font-display text-sm font-bold">
+            👥 Utilisateurs <span className="text-white/40 text-xs font-normal">({usersTotal} résultat{usersTotal > 1 ? 's' : ''})</span>
+          </h3>
+          <button onClick={loadUsers} className="btn-ghost !text-[10px]">🔄 Rafraîchir</button>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-2 mb-3">
+          <input
+            value={userSearch}
+            onChange={e => setUserSearch(e.target.value)}
+            placeholder="🔍 Recherche par email ou pseudo…"
+            className="px-3 py-2 rounded-xl border border-white/[0.12] bg-white/[0.03] text-ma1-ice text-sm outline-none focus:border-ma1-teal/30"
+          />
+          <select
+            value={userFilter}
+            onChange={e => setUserFilter(e.target.value as any)}
+            className="px-3 py-2 rounded-xl border border-white/[0.12] bg-white/[0.03] text-ma1-ice text-sm outline-none"
+          >
+            <option value="all">Tous</option>
+            <option value="active">🟢 Actifs maintenant</option>
+            <option value="inactive">⚪ Inactifs</option>
+            <option value="new">🆕 Nouveaux (24h)</option>
+          </select>
+          <select
+            value={userSort}
+            onChange={e => setUserSort(e.target.value as any)}
+            className="px-3 py-2 rounded-xl border border-white/[0.12] bg-white/[0.03] text-ma1-ice text-sm outline-none"
+          >
+            <option value="recent">Tri : Date d'inscription</option>
+            <option value="xp">Tri : XP (max)</option>
+            <option value="last_seen">Tri : Dernière activité</option>
+          </select>
+        </div>
+        {users.length === 0 ? (
+          <p className="text-[12px] text-white/30 py-4 text-center">Aucun utilisateur pour le moment.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-[12px]">
+              <thead className="text-white/40">
+                <tr className="border-b border-white/[0.08]">
+                  <th className="text-left py-2 px-2"></th>
+                  <th className="text-left py-2 px-2">Pseudo</th>
+                  <th className="text-left py-2 px-2">Email</th>
+                  <th className="text-left py-2 px-2">Inscrit</th>
+                  <th className="text-left py-2 px-2">Dernière activité</th>
+                  <th className="text-right py-2 px-2">XP</th>
+                  <th className="text-right py-2 px-2">QCM</th>
+                  <th className="text-right py-2 px-2">Réussite</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((u) => (
+                  <tr key={u.user_id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+                    <td className="py-2 px-2">
+                      {u.is_active ? <span title="Actif maintenant" className="text-[#2ed573]">🟢</span> : <span title="Inactif" className="text-white/20">⚪</span>}
+                      {u.is_new && <span title="Nouveau (24h)" className="ml-1 text-[9px] bg-[#e8b84d]/15 text-[#e8b84d] px-1 py-0.5 rounded">NEW</span>}
+                    </td>
+                    <td className="py-2 px-2">{u.name || '(anonyme)'}</td>
+                    <td className="py-2 px-2 text-white/40 truncate max-w-[180px]">{u.email || '—'}</td>
+                    <td className="py-2 px-2 text-white/35 text-[11px]">{fmtDate(u.created_at)}</td>
+                    <td className="py-2 px-2 text-white/35 text-[11px]">{fmtDate(u.last_seen_at)}</td>
+                    <td className="py-2 px-2 text-right font-display font-bold">{u.xp}</td>
+                    <td className="py-2 px-2 text-right">{u.qcm_total}</td>
+                    <td className="py-2 px-2 text-right">
+                      <span className={u.success_rate >= 75 ? 'text-[#2ed573]' : u.success_rate >= 50 ? 'text-[#e8b84d]' : 'text-[#ff4757]'}>{u.success_rate}%</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="text-[10px] text-white/25 mt-2">Données réelles Supabase · Auto-refresh 30 s · Statut actif = vu &lt; 5 min</p>
+      </div>
 
       {/* Reporting hebdo */}
       {weekly && (
