@@ -19,7 +19,7 @@ const NAV = [
 export function Header() {
   const pathname = usePathname();
   const store = useStore();
-  const { userName, isLoggedIn, plan, xp, streakDays, logout, setUser, setProfile } = store;
+  const { userName, isLoggedIn, plan, xp, streakDays, logout, setUser, setProfile, setServerXp } = store;
   const [authOpen, setAuthOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -30,6 +30,8 @@ export function Header() {
       api.me(token).then(d => {
         setUser({ userId: d.user_id, token, name: d.name || d.email?.split('@')[0] || '', plan: d.plan });
         if (d.profile) setProfile(d.profile);
+        // [FIX XP] Aligne le XP affiché sur Supabase (source de vérité).
+        api.getUserStats().then((st: any) => { if (st && typeof st.xp === 'number') setServerXp(st.xp); }).catch(() => {});
       }).catch(() => localStorage.removeItem('ma1_token'));
     }
   }, []);
@@ -70,9 +72,12 @@ export function Header() {
                 {userName || 'Mon compte'}
               </button>
               {menuOpen && (
-                <div className="absolute right-0 top-full mt-2 w-48 glass rounded-xl p-2 z-50 animate-msg-in">
-                  <Link href="/dashboard" className="block px-3 py-2 rounded-lg text-xs text-white/60 hover:bg-white/[0.04]" onClick={() => setMenuOpen(false)}>🏫 Dashboard</Link>
-                  <button onClick={() => { window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/rgpd/export/${store.userId}`); setMenuOpen(false); }} className="w-full text-left px-3 py-2 rounded-lg text-xs text-white/60 hover:bg-white/[0.04]">📤 Exporter mes données</button>
+                <div className="absolute right-0 top-full mt-2 w-52 glass rounded-xl p-2 z-50 animate-msg-in">
+                  <Link href="/me" className="block px-3 py-2 rounded-lg text-xs text-white/70 hover:bg-white/[0.04]" onClick={() => setMenuOpen(false)}>👤 Mon espace</Link>
+                  <Link href="/me#stats" className="block px-3 py-2 rounded-lg text-xs text-white/60 hover:bg-white/[0.04]" onClick={() => setMenuOpen(false)}>📊 Mes statistiques</Link>
+                  <Link href="/leaderboard" className="block px-3 py-2 rounded-lg text-xs text-white/60 hover:bg-white/[0.04]" onClick={() => setMenuOpen(false)}>🏆 Mon classement</Link>
+                  <Link href="/support" className="block px-3 py-2 rounded-lg text-xs text-white/60 hover:bg-white/[0.04]" onClick={() => setMenuOpen(false)}>💬 Support</Link>
+                  <div className="my-1 border-t border-white/[0.06]" />
                   <button onClick={handleLogout} className="w-full text-left px-3 py-2 rounded-lg text-xs text-[#ff4757]/70 hover:bg-[#ff4757]/[0.04]">Déconnexion</button>
                 </div>
               )}

@@ -9,7 +9,11 @@ export function LeaderboardPanel() {
   const [sort, setSort] = useState('xp');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { loadLB(); }, [sort]);
+  useEffect(() => {
+    loadLB();
+    const id = setInterval(loadLB, 30_000);
+    return () => clearInterval(id);
+  }, [sort]);
 
   const loadLB = async () => {
     setLoading(true);

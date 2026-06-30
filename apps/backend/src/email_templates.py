@@ -8,6 +8,7 @@ import os
 from datetime import datetime, timezone
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "https://ma1.fr").rstrip("/")
+MA1_LOGO_URL = os.getenv("MA1_LOGO_URL", "https://ma1.fr/ma1-logo.jpeg")
 SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", os.getenv("RESEND_REPLY_TO", "contact@ma1.fr"))
 
 
@@ -27,7 +28,8 @@ def _layout(title: str, body_html: str, cta_text: str | None = None, cta_url: st
     <tr><td align="center">
       <table role="presentation" width="540" cellpadding="0" cellspacing="0" style="max-width:540px;background:#0f2035;border-radius:24px;overflow:hidden;border:1px solid rgba(58,157,176,0.18);box-shadow:0 8px 40px rgba(0,0,0,0.4)">
         <tr><td style="padding:24px 28px 8px;text-align:center">
-          <div style="font-family:Sora,sans-serif;font-weight:800;font-size:22px;letter-spacing:-0.5px;color:#d0eaf2">MA1<span style="color:#7ec8e3"> · </span><span style="font-weight:500;color:rgba(208,234,242,0.55);font-size:14px">Ton Assistant de la Route</span></div>
+          <img src="{MA1_LOGO_URL}" alt="MA1 — Ton Assistant de la Route" width="64" height="64" style="display:inline-block;border:0;outline:none;border-radius:14px;box-shadow:0 4px 18px rgba(58,157,176,0.35)" />
+          <div style="margin-top:10px;font-family:Sora,sans-serif;font-weight:800;font-size:22px;letter-spacing:-0.5px;color:#d0eaf2">MA1<span style="color:#7ec8e3"> · </span><span style="font-weight:500;color:rgba(208,234,242,0.55);font-size:14px">Ton Assistant de la Route</span></div>
         </td></tr>
         <tr><td style="padding:8px 28px 28px">
           <h1 style="font-family:Sora,sans-serif;font-size:22px;color:#a8dce8;margin:16px 0 12px;font-weight:700;line-height:1.3">{title}</h1>
