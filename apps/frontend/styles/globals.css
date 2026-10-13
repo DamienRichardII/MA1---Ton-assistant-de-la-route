@@ -48,3 +48,30 @@ body {
   }
   .btn-ghost:hover { @apply bg-white/[0.04] text-ma1-ice/80; }
 }
+
+/* ───────── Web desktop (≥ lg) — maquette v2 ─────────
+   Classes additives, utilisées uniquement par components/web/* et les pages desktop.
+   Le mobile (< lg) n'utilise aucune de ces classes. */
+@layer components {
+  .web-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-7 py-3 font-display text-sm font-bold transition-all duration-200;
+  }
+  .web-btn-primary {
+    @apply web-btn bg-ma1-blue text-white shadow-web-btn hover:-translate-y-0.5 hover:bg-ma1-blue-dark;
+  }
+  .web-btn-outline {
+    @apply web-btn border-2 border-ma1-blue bg-white text-ma1-blue hover:-translate-y-0.5 hover:bg-ma1-blue-soft;
+  }
+  .web-btn-dark {
+    @apply web-btn border border-white/10 bg-white/[0.06] text-white/80 hover:bg-white/10;
+  }
+  .web-card {
+    @apply rounded-[22px] border border-white/70 bg-white shadow-web-card;
+  }
+  .app-card {
+    @apply rounded-[20px] border border-ma1-app-line bg-ma1-app-card/80;
+  }
+  .web-input {
+    @apply w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-ma1-ink outline-none transition-colors placeholder:text-slate-400 focus:border-ma1-blue focus:ring-2 focus:ring-ma1-blue/15;
+  }
+}

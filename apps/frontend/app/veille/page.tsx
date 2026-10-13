@@ -1,8 +1,10 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
+import { WebVeille } from '@/components/web/app/WebVeille';
+import { DesktopOnly, MobileOnly } from '@/components/web/responsive';
 
-export default function VeillePage() {
+function MobileVeille() {
   const [data, setData] = useState<{ date?: string; synthese?: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -32,5 +34,14 @@ export default function VeillePage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function VeillePage() {
+  return (
+    <>
+      <MobileOnly><MobileVeille /></MobileOnly>
+      <DesktopOnly><WebVeille /></DesktopOnly>
+    </>
   );
 }

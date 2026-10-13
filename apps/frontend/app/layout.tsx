@@ -3,8 +3,6 @@ import '@/styles/globals.css';
 import { Starfield } from '@/components/ui/Starfield';
 import { AmbientGlow } from '@/components/ui/AmbientGlow';
 import { Header } from '@/components/ui/Header';
-import { Sidebar } from '@/components/ui/Sidebar';
-import { RightPanel } from '@/components/ui/RightPanel';
 import { MobileNav } from '@/components/ui/MobileNav';
 import { XPToast } from '@/components/gamification/XPToast';
 import { RGPDBanner } from '@/components/ui/RGPDBanner';
@@ -12,6 +10,8 @@ import { Onboarding } from '@/components/ui/Onboarding';
 import { NotificationPrompt } from '@/components/ui/NotificationPrompt';
 import { PresenceTracker } from '@/components/ui/PresenceTracker';
 import { HeartbeatPing } from '@/components/presence/HeartbeatPing';
+import { SessionRestore } from '@/components/auth/SessionRestore';
+import { WebFrame } from '@/components/web/WebFrame';
 
 export const metadata: Metadata = {
   title: 'MA1 — Ton Assistant IA du Code de la Route',
@@ -33,22 +33,22 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // Mobile (< lg) : shell historique inchangé. Desktop (≥ lg) : site multipage (components/web/*).
   return (
     <html lang="fr">
-      <body className="overflow-hidden">
-        <Starfield />
-        <Onboarding />
+      <body className="overflow-hidden lg:overflow-visible">
+        <SessionRestore />
+        <div className="lg:hidden"><Starfield /></div>
+        <div className="lg:hidden"><Onboarding /></div>
         <NotificationPrompt />
         <PresenceTracker />
-        <AmbientGlow />
+        <div className="lg:hidden"><AmbientGlow /></div>
         <XPToast />
-        <Header />
-        <div className="relative z-[1] grid grid-cols-[215px_1fr_255px] h-[calc(100dvh-54px)] max-lg:grid-cols-1 max-lg:h-[calc(100dvh-54px-56px)]">
-          <Sidebar />
-          <main className="flex flex-col h-full overflow-hidden">
-            {children}
+        <div className="lg:hidden"><Header /></div>
+        <div className="relative z-[1] grid grid-cols-1 h-[calc(100dvh-54px-56px)] lg:block lg:h-auto">
+          <main className="flex flex-col h-full overflow-hidden lg:h-auto lg:overflow-visible">
+            <WebFrame>{children}</WebFrame>
           </main>
-          <RightPanel />
         </div>
         <MobileNav />
         <RGPDBanner />

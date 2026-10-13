@@ -1,11 +1,10 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import { AuthModal } from '@/components/auth/AuthModal';
-import { api } from '@/lib/api';
 
 const NAV = [
   { href: '/', label: 'Chat', icon: '💬' },
@@ -19,22 +18,11 @@ const NAV = [
 export function Header() {
   const pathname = usePathname();
   const store = useStore();
-  const { userName, isLoggedIn, plan, xp, streakDays, logout, setUser, setProfile, setServerXp } = store;
+  const { userName, isLoggedIn, plan, xp, streakDays, logout } = store;
   const [authOpen, setAuthOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Restore session on mount
-  useEffect(() => {
-    const token = localStorage.getItem('ma1_token');
-    if (token && !isLoggedIn) {
-      api.me(token).then(d => {
-        setUser({ userId: d.user_id, token, name: d.name || d.email?.split('@')[0] || '', plan: d.plan });
-        if (d.profile) setProfile(d.profile);
-        // [FIX XP] Aligne le XP affiché sur Supabase (source de vérité).
-        api.getUserStats().then((st: any) => { if (st && typeof st.xp === 'number') setServerXp(st.xp); }).catch(() => {});
-      }).catch(() => localStorage.removeItem('ma1_token'));
-    }
-  }, []);
+  // La restauration de session est assurée par <SessionRestore /> (app/layout.tsx).
 
   const handleLogout = () => { logout(); localStorage.removeItem('ma1_token'); setMenuOpen(false); };
 

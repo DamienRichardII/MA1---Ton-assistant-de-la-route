@@ -1,3 +1,13 @@
 'use client';
 import { QCMPanel } from '@/components/qcm/QCMPanel';
-export default function QCMPage() { return <QCMPanel />; }
+import { WebQCM } from '@/components/web/app/WebQCM';
+import { DesktopOnly, MobileOnly } from '@/components/web/responsive';
+
+export default function QCMPage() {
+  return (
+    <>
+      <MobileOnly><QCMPanel /></MobileOnly>
+      <DesktopOnly><WebQCM /></DesktopOnly>
+    </>
+  );
+}

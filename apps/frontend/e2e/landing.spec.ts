@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 
-test.describe("Landing Page SEO", () => {
+// Desktop (viewport Playwright par défaut 1280×720) : accueil du site multipage (maquette 01).
+test.describe("Landing — desktop", () => {
   test("loads and has correct title", async ({ page }) => {
     await page.goto("/landing");
     await expect(page).toHaveTitle(/Code de la Route/i);
@@ -8,27 +9,39 @@ test.describe("Landing Page SEO", () => {
 
   test("has H1 with keywords", async ({ page }) => {
     await page.goto("/landing");
-    const h1 = page.locator("h1");
-    await expect(h1).toContainText("Code de la Route");
+    await expect(page.locator("h1:visible")).toContainText("Code de la Route");
   });
 
-  test("has pricing section", async ({ page }) => {
+  test("CTA leads to registration", async ({ page }) => {
     await page.goto("/landing");
-    await expect(page.locator("#pricing")).toBeVisible();
-    await expect(page.locator("text=10€")).toBeVisible();
-    await expect(page.locator("text=79€")).toBeVisible();
-    await expect(page.locator("text=200€")).toBeVisible();
-  });
-
-  test("CTA links to app", async ({ page }) => {
-    await page.goto("/landing");
-    const cta = page.locator("text=Commencer gratuitement").first();
-    await expect(cta).toHaveAttribute("href", "/");
+    const cta = page.getByRole("link", { name: "Commencer gratuitement" }).last();
+    await expect(cta).toHaveAttribute("href", "/connexion?mode=register");
   });
 
   test("has JSON-LD schema", async ({ page }) => {
     await page.goto("/landing");
-    const schema = page.locator('script[type="application/ld+json"]');
-    await expect(schema).toBeAttached();
+    await expect(page.locator('script[type="application/ld+json"]')).toBeAttached();
+  });
+});
+
+// Mobile (< lg) : landing historique inchangée.
+test.describe("Landing — mobile", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem("ma1_ob", "1"));
+  });
+
+  test("keeps the legacy landing with pricing", async ({ page }) => {
+    await page.goto("/landing");
+    await expect(page.locator("h1:visible")).toContainText("Code de la Route");
+    await expect(page.locator("#pricing")).toBeAttached();
+    await expect(page.locator("text=10€").first()).toBeAttached();
+    await expect(page.locator("text=79€").first()).toBeAttached();
+    await expect(page.locator("text=200€").first()).toBeAttached();
+  });
+
+  test("CTA links to the standalone app", async ({ page }) => {
+    await page.goto("/landing");
+    await expect(page.locator("a:visible", { hasText: "Commencer gratuitement" }).first()).toHaveAttribute("href", "/index-standalone.html");
   });
 });

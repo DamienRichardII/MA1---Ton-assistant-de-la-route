@@ -18,11 +18,23 @@ module.exports = {
           red: '#ff4757',
           purple: '#a55eea',
           orange: '#ffa502',
+          // Web desktop (maquette v2) — tokens additifs, la palette historique ci-dessus est inchangée.
+          blue: '#1553e0',
+          'blue-dark': '#0f3fb8',
+          'blue-soft': '#e8f0ff',
+          ink: '#0b1a33',
+          'app-bg': '#07142a',
+          'app-card': '#0d2040',
+          'app-line': 'rgba(120,170,255,0.14)',
         },
       },
       fontFamily: {
         display: ['Sora', 'system-ui', 'sans-serif'],
         body: ['Nunito Sans', 'system-ui', 'sans-serif'],
+      },
+      boxShadow: {
+        'web-card': '0 10px 40px rgba(15,63,184,0.10), 0 1px 0 rgba(255,255,255,0.8) inset',
+        'web-btn': '0 8px 22px rgba(21,83,224,0.35)',
       },
       borderRadius: {
         'ma1': '22px',

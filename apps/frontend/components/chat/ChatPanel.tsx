@@ -62,7 +62,7 @@ function parseSafe(raw: string): Token[][] {
   });
 }
 
-function SafeMarkdown({ text }: { text: string }) {
+export function SafeMarkdown({ text }: { text: string }) {
   const lines = parseSafe(text);
   return (
     <>

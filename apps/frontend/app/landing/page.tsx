@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
+import { WebHome } from '@/components/web/WebHome';
 
 export const metadata: Metadata = {
   title: 'Code de la Route Gratuit avec IA — MA1 | Révisez avec l\'Intelligence Artificielle',
@@ -56,7 +57,7 @@ const FAQ = [
   { q: 'Comment fonctionne l\'essai gratuit Premium ?', a: '7 jours d\'accès complet sans engagement. Un email de rappel est envoyé 48h avant la fin. Vous pouvez annuler à tout moment.' },
 ];
 
-export default function LandingPage() {
+function LegacyLanding() {
   return (
     <div className="min-h-screen bg-[#0a1628] text-[#d0eaf2] overflow-x-hidden">
       {/* Hero */}
@@ -192,5 +193,15 @@ export default function LandingPage() {
         "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.8", "ratingCount": "150" }
       })}} />
     </div>
+  );
+}
+
+// Mobile (< lg) : landing historique inchangée. Desktop (≥ lg) : accueil du site multipage (maquette 01).
+export default function LandingPage() {
+  return (
+    <>
+      <div className="lg:hidden"><LegacyLanding /></div>
+      <div className="hidden lg:block"><WebHome /></div>
+    </>
   );
 }

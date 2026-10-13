@@ -1,8 +1,10 @@
 import { test, expect } from "@playwright/test";
 
+test.use({ viewport: { width: 390, height: 844 } }); // shell mobile historique (le desktop a son propre jeu de tests : web.spec.ts)
+
 test.describe("QCM", () => {
   test.beforeEach(async ({ page }) => {
-    await page.evaluate(() => {
+    await page.addInitScript(() => {
       localStorage.setItem("ma1_ob", "1");
       localStorage.setItem("ma1_pos_done", "1");
       localStorage.setItem("ma1_rgpd", "accept");
@@ -11,7 +13,7 @@ test.describe("QCM", () => {
 
   test("QCM page loads", async ({ page }) => {
     await page.goto("/qcm");
-    await expect(page.locator("text=Adaptatif").or(page.locator("text=Génération"))).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("heading", { name: /Limitations de vitesse/ })).toBeVisible({ timeout: 10000 });
   });
 
   test("difficulty selector exists", async ({ page }) => {

@@ -30,7 +30,12 @@ Phase de cadrage architecture. Failles P0 documentées dans `AUDIT_MA1_v9.md`. R
 | `/index-standalone.html` | `public/index-standalone.html` | App monolithe v7 (cible "Commencer" en attendant la stabilisation Next.js) |
 | `/qcm`, `/exam`, `/dashboard`, `/settings`, etc. | `app/<route>/page.tsx` | App Next.js v8 (en cours) |
 | `/legal/cgu.html`, etc. | `public/legal/*.html` | Pages légales statiques |
+| `/moniteur`, `/apprenti`, `/auto-ecole`, `/abonnement`, `/utilisation`, `/a-propos`, `/contact`, `/mentions-legales` | `app/<route>/page.tsx` | **Site web desktop** (≥ 1024 px, maquette v2) — pages marketing claires, header/footer `components/web/*` |
+| `/connexion` | `app/connexion/page.tsx` | Connexion / inscription (écran scindé desktop) |
+| `/chat` | `app/chat/page.tsx` | Chat IA (desktop : coque sombre avec sidebar ; mobile : `ChatPanel`) |
 | `/api/*` | `app/api/*/route.ts` → proxies vers `BACKEND_URL` (FastAPI) | API |
+
+**Web desktop vs mobile (≥ / < `lg` = 1024 px)** : `app/layout.tsx` garde le shell mobile historique (Header, MobileNav) sous `lg` et délègue au-dessus à `components/web/WebFrame` (variantes `marketing` clair / `app` sombre / `bare`, voir `components/web/nav.ts`). Les pages à état (`/qcm`, `/exam`, `/chat`, `/plan30`, `/leaderboard`, `/veille`) rendent `MobileOnly` (panel historique) ou `DesktopOnly` (`components/web/app/*`) via `components/web/responsive.tsx`. Ne pas modifier le rendu mobile.
 
 **App cible long terme : Next.js v8** — la standalone v7 sera dépréciée en Sprint 2.
 
