@@ -10,8 +10,8 @@ export function HomeHero() {
   return (
     <section className="relative -mt-[62px] overflow-hidden pt-[62px]">
       {/* Photo + voile : deux calques, un par thème (data-theme sur l'ancêtre .home-scope). */}
-      <div aria-hidden className="absolute inset-0 bg-cover bg-center [[data-theme=dark]_&]:hidden" style={{ backgroundImage: `url(${HERO_PHOTO_LIGHT}), var(--h-hero-fallback)` }} />
-      <div aria-hidden className="absolute inset-0 hidden bg-cover bg-center [[data-theme=dark]_&]:block" style={{ backgroundImage: `url(${HERO_PHOTO_NIGHT}), var(--h-hero-fallback)` }} />
+      <div aria-hidden className="absolute inset-0 bg-cover bg-[position:center_62%] [[data-theme=dark]_&]:hidden" style={{ backgroundImage: `url(${HERO_PHOTO_LIGHT}), var(--h-hero-fallback)` }} />
+      <div aria-hidden className="absolute inset-0 hidden bg-cover bg-[position:center_62%] [[data-theme=dark]_&]:block" style={{ backgroundImage: `url(${HERO_PHOTO_NIGHT}), var(--h-hero-fallback)` }} />
       <div aria-hidden className="absolute inset-0" style={{ background: 'var(--h-hero-veil)' }} />
       <div aria-hidden className="absolute inset-0" style={{ background: 'var(--h-hero-fade)' }} />
 

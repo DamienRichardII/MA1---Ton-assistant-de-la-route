@@ -1,11 +1,10 @@
-# Photographies de l'accueil (à fournir)
+# Photographies de l'accueil
 
-Fichiers attendus (JPEG, libres de droits ou propriétaires, sans texte ni logo incrusté) :
-
-| Fichier | Contenu | Dimensions conseillées |
+| Fichier | Contenu | Utilisation |
 |---|---|---|
-| `hero-road-light.jpg` | Autoroute / route de jour, quelques véhicules, végétation, lumière douce. Zone centrale peu chargée (le logo et les appareils s'y superposent). | 2560×800 |
-| `hero-road-night.jpg` | Même scène de nuit : phares, reflets bleutés, ambiance bleu nuit. | 2560×800 |
-| `phone-situation.jpg` | Situation routière vue du conducteur (voitures sur une voie, signalisation), pour la question « Dans cette situation, je peux dépasser ». | 800×450 |
+| `hero-road-light.jpg` | Autoroute de jour (1672×941) | Fond du hero, thème clair |
+| `hero-road-night.jpg` | Autoroute de nuit (1672×941) | Fond du hero, thème sombre |
+| `phone-situation.jpg` | Situation routière (462×284), extraite de la maquette smartphone | Photo de la question dans le smartphone du hero |
 
-Tant qu'un fichier est absent, le fond retombe sur un dégradé neutre : aucune illustration de substitution n'est dessinée.
+Références : `components/web/home/assets.ts`. Si un fichier est absent, le fond retombe sur un dégradé neutre.
+Pour un rendu net sur écrans larges/retina, prévoir ≥ 2560×800 pour les fonds et ≥ 800×450 pour la photo du téléphone.
