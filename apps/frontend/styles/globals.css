@@ -75,3 +75,39 @@ body {
     @apply w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-ma1-ink outline-none transition-colors placeholder:text-slate-400 focus:border-ma1-blue focus:ring-2 focus:ring-ma1-blue/15;
   }
 }
+
+/* ───────── Thème de l'accueil web (clair par défaut, sombre via data-theme="dark") ───────── */
+.home-scope {
+  --h-page: #eef3fb;
+  --h-text: #0b1a33;
+  --h-muted: #5b6b86;
+  --h-card: #ffffff;
+  --h-card-line: rgba(21, 83, 224, 0.08);
+  --h-card-shadow: 0 6px 24px rgba(15, 63, 184, 0.10);
+  --h-bar: rgba(255, 255, 255, 0.88);
+  --h-bar-line: rgba(255, 255, 255, 0.9);
+  --h-accent: #1553e0;
+  --h-accent-soft: #e8f0ff;
+  --h-hero-veil: linear-gradient(90deg, rgba(255,255,255,.90) 0%, rgba(255,255,255,.62) 38%, rgba(255,255,255,.30) 62%, rgba(255,255,255,.50) 100%);
+  --h-hero-fade: linear-gradient(180deg, rgba(238,243,251,0) 70%, #eef3fb 100%);
+  --h-hero-fallback: linear-gradient(180deg, #cfe0fb 0%, #e9f1fd 55%, #eef3fb 100%);
+  --h-screen-bg: #f6f9ff; --h-screen-card: #ffffff; --h-screen-text: #0b1a33; --h-screen-muted: #7a8aa6; --h-screen-line: #dbe5f5; --h-screen-side: #0d1f3d;
+  --h-device-glow: 0 24px 50px rgba(11, 26, 51, 0.28);
+}
+.home-scope[data-theme='dark'] {
+  --h-page: #050d1c;
+  --h-text: #ffffff;
+  --h-muted: #a9bbd8;
+  --h-card: rgba(9, 22, 46, 0.86);
+  --h-card-line: rgba(70, 130, 255, 0.30);
+  --h-card-shadow: 0 6px 28px rgba(0, 0, 0, 0.45);
+  --h-bar: rgba(6, 16, 34, 0.80);
+  --h-bar-line: rgba(70, 130, 255, 0.25);
+  --h-accent: #2f7bff;
+  --h-accent-soft: rgba(47, 123, 255, 0.16);
+  --h-hero-veil: linear-gradient(90deg, rgba(5,13,28,.78) 0%, rgba(5,13,28,.40) 40%, rgba(5,13,28,.25) 65%, rgba(5,13,28,.50) 100%);
+  --h-hero-fade: linear-gradient(180deg, rgba(5,13,28,0) 70%, #050d1c 100%);
+  --h-hero-fallback: linear-gradient(180deg, #0a1a38 0%, #071329 60%, #050d1c 100%);
+  --h-screen-bg: #0a1730; --h-screen-card: #0e2044; --h-screen-text: #ffffff; --h-screen-muted: #8ea6cf; --h-screen-line: #1b3563; --h-screen-side: #07122a;
+  --h-device-glow: 0 0 40px rgba(47, 123, 255, 0.35), 0 24px 50px rgba(0, 0, 0, 0.6);
+}

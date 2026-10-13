@@ -18,7 +18,7 @@ export const SITE_NAV = [
   { href: '/landing', label: 'Accueil' },
   { href: '/utilisation', label: 'Fonctionnalités' },
   { href: '/abonnement', label: 'Tarifs' },
-  { href: '/a-propos', label: 'À propos' },
+  { href: '/auto-ecole', label: 'Auto-écoles' },
   { href: '/blog', label: 'Blog' },
   { href: '/contact', label: 'Contact' },
 ];

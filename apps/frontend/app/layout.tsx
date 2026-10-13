@@ -12,6 +12,7 @@ import { PresenceTracker } from '@/components/ui/PresenceTracker';
 import { HeartbeatPing } from '@/components/presence/HeartbeatPing';
 import { SessionRestore } from '@/components/auth/SessionRestore';
 import { WebFrame } from '@/components/web/WebFrame';
+import { MobileChromeGate } from '@/components/web/MobileChromeGate';
 
 export const metadata: Metadata = {
   title: 'MA1 — Ton Assistant IA du Code de la Route',
@@ -44,13 +45,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <PresenceTracker />
         <div className="lg:hidden"><AmbientGlow /></div>
         <XPToast />
-        <div className="lg:hidden"><Header /></div>
+        <MobileChromeGate><div className="lg:hidden"><Header /></div></MobileChromeGate>
         <div className="relative z-[1] grid grid-cols-1 h-[calc(100dvh-54px-56px)] lg:block lg:h-auto">
           <main className="flex flex-col h-full overflow-hidden lg:h-auto lg:overflow-visible">
             <WebFrame>{children}</WebFrame>
           </main>
         </div>
-        <MobileNav />
+        <MobileChromeGate><MobileNav /></MobileChromeGate>
         <RGPDBanner />
         {/* [Fix Admin realtime] Ping /presence/heartbeat toutes les 45s si connecté */}
         <HeartbeatPing />

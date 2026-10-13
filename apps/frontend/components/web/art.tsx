@@ -69,53 +69,6 @@ export function PhoneMock({ className = '' }: { className?: string }) {
   );
 }
 
-function Road() {
-  return (
-    <svg viewBox="0 0 800 420" preserveAspectRatio="xMidYMax slice" className="absolute inset-0 h-full w-full" aria-hidden>
-      <defs>
-        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#7db4ff" /><stop offset=".55" stopColor="#d9ebff" /><stop offset="1" stopColor="#f3f8ff" /></linearGradient>
-        <linearGradient id="asph" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#8a97ab" /><stop offset="1" stopColor="#4b566a" /></linearGradient>
-      </defs>
-      <rect width="800" height="420" fill="url(#sky)" />
-      <g fill="#fff" fillOpacity=".85"><ellipse cx="130" cy="70" rx="90" ry="22" /><ellipse cx="200" cy="58" rx="60" ry="22" /><ellipse cx="560" cy="48" rx="80" ry="18" /><ellipse cx="620" cy="40" rx="50" ry="18" /></g>
-      <path d="M0 250 Q120 215 260 240 T520 238 T800 232 V300 H0Z" fill="#7fa88a" fillOpacity=".55" />
-      <path d="M0 420 V300 L330 262 H470 L800 300 V420Z" fill="url(#asph)" />
-      <path d="M392 262 H408 L430 420 H370Z" fill="#fff" fillOpacity=".75" />
-      <path d="M0 330 L200 305 L170 420 H0Z" fill="#fff" fillOpacity=".14" />
-    </svg>
-  );
-}
-
-function Car({ className = '' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 220 110" className={className} aria-hidden>
-      <ellipse cx="110" cy="100" rx="96" ry="8" fill="#000" fillOpacity=".25" />
-      <path d="M18 78 q4-26 30-32 l28-20 h70 l26 22 q22 4 28 26 v14 a6 6 0 0 1-6 6 H24 a6 6 0 0 1-6-6Z" fill="#1c2a45" />
-      <path d="M62 48 l20-16 h58 l22 18Z" fill="#9cc4ff" fillOpacity=".7" />
-      <rect x="30" y="74" width="26" height="9" rx="4" fill="#ff5a5f" /><rect x="164" y="74" width="26" height="9" rx="4" fill="#ff5a5f" />
-      <circle cx="58" cy="94" r="14" fill="#0a0f1c" /><circle cx="58" cy="94" r="6" fill="#6b7a95" /><circle cx="166" cy="94" r="14" fill="#0a0f1c" /><circle cx="166" cy="94" r="6" fill="#6b7a95" />
-    </svg>
-  );
-}
-
-/** Héros d'accueil : route, voiture, logo MA1, tablette. */
-export function HomeArt() {
-  return (
-    <div className="relative h-[430px] overflow-hidden rounded-[22px]">
-      <Road />
-      <Car className="absolute bottom-6 left-10 w-[210px]" />
-      <div className="absolute left-1/2 top-9 -translate-x-1/2">
-        <div className="rounded-[44px] bg-gradient-to-br from-[#0b1d3d] to-[#071329] p-2 shadow-[0_24px_60px_rgba(11,26,51,0.45)]">
-          <Image src="/ma1-logo.jpeg" alt="MA1 — Ton assistant de la route" width={250} height={250} className="rounded-[38px]" priority />
-        </div>
-      </div>
-      <div className="absolute -right-6 top-6 w-[330px] rotate-[6deg] [perspective:800px]">
-        <div className="rounded-2xl bg-[#0a1426] p-2 shadow-[0_20px_50px_rgba(11,26,51,0.45)]"><DashboardMock variant="chat" /></div>
-      </div>
-    </div>
-  );
-}
-
 export function MoniteurArt() {
   return (
     <div className="relative h-full min-h-[360px]">
