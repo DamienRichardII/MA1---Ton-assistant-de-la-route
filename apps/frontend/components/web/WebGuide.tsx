@@ -9,7 +9,7 @@ const STEPS = [
   { icon: LayoutGrid, title: "Choix de l'espace", heading: "2. Choix de l'espace", text: 'Apprenti, moniteur ou auto-école : chaque espace propose les outils adaptés à votre usage.', cta: { label: 'Voir les espaces', href: '/apprenti' }, mock: 'table' as const },
   { icon: Footprints, title: 'Premiers pas', heading: '3. Premiers pas', text: 'Posez une question au chat IA, faites un premier QCM ou lancez votre plan de révision sur 30 jours.', cta: { label: 'Ouvrir le chat IA', href: '/chat' }, mock: 'chat' as const },
   { icon: Sparkles, title: 'Fonctionnalités', heading: '4. Fonctionnalités', text: "QCM adaptatifs, examens blancs de 40 questions en 30 minutes, analyse de panneaux par photo, classement et suivi de progression.", cta: { label: 'Découvrir le QCM', href: '/qcm' }, mock: 'stats' as const },
-  { icon: Lightbulb, title: "Conseils d'utilisation", heading: "5. Conseils d'utilisation", text: "Révisez un peu chaque jour, refaites vos erreurs et vérifiez toujours les réponses sur Légifrance : MA1 est un outil pédagogique.", cta: { label: 'Lire le blog', href: '/blog' }, mock: 'stats' as const },
+  { icon: Lightbulb, title: "Conseils d'utilisation", heading: "5. Conseils d'utilisation", text: "Révisez un peu chaque jour, refaites vos erreurs et vérifiez toujours les réponses sur Légifrance : MA1 est un outil pédagogique.", cta: { label: 'Nous contacter', href: '/contact' }, mock: 'stats' as const },
 ];
 
 // Maquette 16 — Utilisation

@@ -3,7 +3,7 @@ import { MessageSquare, ListChecks, FileText, CalendarDays, Trophy, BarChart3, R
 export type Variant = 'marketing' | 'app' | 'bare';
 
 // Pages « application » : coque sombre avec sidebar (maquette 09 → 14).
-const APP_PREFIXES = ['/chat', '/qcm', '/exam', '/plan30', '/leaderboard', '/dashboard', '/veille', '/vision', '/me', '/settings', '/support', '/positioning', '/blog'];
+const APP_PREFIXES = ['/chat', '/qcm', '/exam', '/plan30', '/leaderboard', '/dashboard', '/veille', '/vision', '/me', '/settings', '/support', '/positioning'];
 // Pages sans chrome web : admin et doc API (rendu historique conservé) + connexion (écran scindé, maquette 05).
 const BARE_PREFIXES = ['/admin', '/api-docs', '/connexion'];
 
@@ -19,8 +19,6 @@ export const SITE_NAV = [
   { href: '/utilisation', label: 'Fonctionnalités' },
   { href: '/abonnement', label: 'Tarifs' },
   { href: '/auto-ecole', label: 'Auto-écoles' },
-  { href: '/blog', label: 'Blog' },
-  { href: '/contact', label: 'Contact' },
 ];
 
 export const APP_NAV = [

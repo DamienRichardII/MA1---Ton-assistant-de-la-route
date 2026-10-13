@@ -3,7 +3,7 @@ import { Logo } from './WebHeader';
 
 const COLS = [
   { title: 'Produit', links: [['Espace apprenti', '/apprenti'], ['Espace moniteur', '/moniteur'], ['Espace auto-école', '/auto-ecole'], ['Tarifs', '/abonnement']] },
-  { title: 'MA1', links: [['À propos', '/a-propos'], ['Comment utiliser MA1', '/utilisation'], ['Blog', '/blog'], ['Contact', '/contact']] },
+  { title: 'MA1', links: [['À propos', '/a-propos'], ['Comment utiliser MA1', '/utilisation'], ['Contact', '/contact']] },
   { title: 'Légal', links: [['Mentions légales', '/mentions-legales'], ['CGU', '/legal/cgu.html'], ['CGV', '/legal/cgv.html'], ['Confidentialité', '/legal/confidentialite.html']] },
 ];
 
