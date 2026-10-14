@@ -469,3 +469,33 @@ def test_cron_refusal_is_diagnosed_without_leaking_the_secret(monkeypatch, capsy
     out = capsys.readouterr().out
     assert "reçu (longueur 4)" in out and "ABSENT de la requête" in out and "défini (longueur 16)" in out
     assert "s3cret-value-xyz" not in out and "faux" not in out
+
+
+@pytest.mark.asyncio
+async def test_diagnostic_checkouts_plain_vs_recurring(env):
+    svc, sumup, store, _ = env
+    plain = await svc.diagnostic_checkout("plain", 100)
+    co = sumup.checkouts[plain["checkout_id"]]
+    assert "purpose" not in co and "customer_id" not in co and co["amount"] == 1.0   # paiement ordinaire, sans option
+    assert plain["url"].startswith("https://checkout.sumup.com/") and not store.subs  # aucun abonnement créé
+    rec = await svc.diagnostic_checkout("recurring", 100)
+    co = sumup.checkouts[rec["checkout_id"]]
+    assert co["purpose"] == "SETUP_RECURRING_PAYMENT" and co["customer_id"] == "ma1-diag"
+    big = await svc.diagnostic_checkout("plain", 999999)
+    assert big["amount_cents"] == 500                                                # plafonné à 5 €
+    with pytest.raises(B.BillingError): await svc.diagnostic_checkout("autre")
+    st = await svc.diagnostic_status(plain["checkout_id"])
+    assert st["status"] == "PENDING" and "hosted_checkout_url" not in st and "https://" not in str(st)
+
+
+def test_diagnostic_routes_are_protected(monkeypatch, env):
+    from fastapi.testclient import TestClient
+    import api
+    svc, *_ = env
+    monkeypatch.setattr(api, "get_billing", lambda: svc)
+    monkeypatch.setenv("CRON_SECRET", "cr0n")
+    c = TestClient(api.app)
+    assert c.post("/payment/diagnostic/checkout").status_code in (401, 403)
+    assert c.get("/payment/diagnostic/checkout/x").status_code in (401, 403)
+    r = c.post("/payment/diagnostic/checkout?variant=plain", headers={"X-Cron-Secret": "cr0n"})
+    assert r.status_code == 200 and r.json()["url"].startswith("https://checkout.sumup.com/")

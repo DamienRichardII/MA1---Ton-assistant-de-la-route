@@ -1043,6 +1043,20 @@ def require_cron_or_admin(authorization: Optional[str] = Header(None), x_cron_se
     print(f"[billing] /cron/billing refusé : en-tête X-Cron-Secret {recu} ; CRON_SECRET {serveur}", flush=True)
     return require_admin(authorization, token)
 
+@app.post("/payment/diagnostic/checkout")
+async def payment_diag_create(variant: str = "plain", amount_cents: int = 100, _who: str = Depends(require_cron_or_admin)):
+    """Diagnostic : crée un paiement de test (1–5 €). variant=plain (ordinaire) ou recurring (avec enregistrement de carte)."""
+    svc = _need_billing()
+    try: return await svc.diagnostic_checkout(variant, amount_cents)
+    except billing_mod.BillingError as e: raise _billing_http(e)
+
+@app.get("/payment/diagnostic/checkout/{checkout_id}")
+async def payment_diag_status(checkout_id: str, _who: str = Depends(require_cron_or_admin)):
+    """Diagnostic : état d'un paiement chez SumUp (liste blanche de champs, sans URL ni secret)."""
+    svc = _need_billing()
+    try: return await svc.diagnostic_status(checkout_id)
+    except billing_mod.BillingError as e: raise _billing_http(e)
+
 @app.post("/cron/billing")
 async def cron_billing(_who: str = Depends(require_cron_or_admin)):
     """Réconcilie les souscriptions en attente puis prélève les renouvellements échus. À appeler 1×/jour (idéalement toutes les heures) : header X-Cron-Secret."""

@@ -59,17 +59,20 @@ class SumUpClient:
 
     # ── Checkouts ─────────────────────────────────────────────
     async def create_checkout(self, *, reference: str, amount_cents: int, currency: str, description: str,
-                              customer_id: str, purpose: str = "CHECKOUT", return_url: Optional[str] = None,
-                              redirect_url: Optional[str] = None, hosted: bool = False) -> dict:
+                              customer_id: Optional[str] = None, purpose: Optional[str] = "CHECKOUT",
+                              return_url: Optional[str] = None, redirect_url: Optional[str] = None,
+                              hosted: bool = False) -> dict:
         body: dict = {
             "checkout_reference": reference,
             "amount": round(amount_cents / 100, 2),
             "currency": currency,
             "merchant_code": self.merchant_code,
             "description": description,
-            "customer_id": customer_id,
-            "purpose": purpose,
         }
+        if customer_id:
+            body["customer_id"] = customer_id
+        if purpose:
+            body["purpose"] = purpose
         if return_url:
             body["return_url"] = return_url          # callback serveur à chaque changement de statut
         if redirect_url:
