@@ -1,0 +1,29 @@
+# Prélèvement quotidien des renouvellements d'abonnements SumUp (voir docs/SPRINT_PAIEMENT_SUMUP.md).
+# Secrets GitHub requis (Settings → Secrets and variables → Actions) :
+#   BACKEND_URL  = adresse publique du backend Railway, ex. https://xxxx.up.railway.app (sans "/" final)
+#   CRON_SECRET  = même valeur que la variable CRON_SECRET de Railway
+# Sans ces secrets, le job s'ignore (avertissement) et ne casse rien.
+name: Billing cron
+
+on:
+  schedule:
+    - cron: '17 6 * * *'   # tous les jours à 06:17 UTC
+  workflow_dispatch:        # lancement manuel possible (onglet Actions)
+
+jobs:
+  renewals:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prélever les renouvellements échus
+        env:
+          BACKEND_URL: ${{ secrets.BACKEND_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$BACKEND_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "::warning::Secrets BACKEND_URL / CRON_SECRET absents : cron ignoré."
+            exit 0
+          fi
+          code=$(curl -sS -o out.json -w "%{http_code}" -X POST --max-time 120 \
+            -H "X-Cron-Secret: $CRON_SECRET" "$BACKEND_URL/cron/billing")
+          echo "HTTP $code"; cat out.json; echo
+          test "$code" = "200"
