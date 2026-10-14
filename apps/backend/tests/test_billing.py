@@ -165,7 +165,10 @@ async def test_webhook_rejects_tampered_amount_or_failed(env):
     assert store.list_user("u1")[0]["status"] == "failed" and not hooks.plans
     await svc.start_subscription("u2", "c@d.fr", "B", "annual")
     cid2 = list(sumup.checkouts)[-1]; sumup.checkouts[cid2]["status"] = "FAILED"
+    sumup.checkouts[cid2]["transactions"] = [{"status": "FAILED", "payment_type": "ECOM", "decline": "do_not_honor"}]
     assert (await svc.handle_checkout_event(cid2))["result"] == "failed" and not hooks.plans
+    err = store.list_user("u2")[0]["last_error"]                                  # le motif SumUp est conservé pour le diagnostic
+    assert err.startswith("checkout_failed") and "do_not_honor" in err
 
 
 # ── Renouvellements ──

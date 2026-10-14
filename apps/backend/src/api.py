@@ -1017,8 +1017,10 @@ async def sumup_webhook(request: Request, t: str = ""):
     cid = body.get("id") or body.get("checkout_id") or (body.get("payload") or {}).get("checkout_id")
     if not isinstance(cid, str) or not cid:
         raise HTTPException(400, "Identifiant de checkout manquant")
+    print(f"[billing] callback SumUp reçu checkout={cid}", flush=True)
     try: res = await svc.handle_checkout_event(cid)
     except billing_mod.BillingError as e: raise _billing_http(e)   # 502 → SumUp réessaiera
+    print(f"[billing] callback traité checkout={cid} -> {res}", flush=True)
     return {"ok": True, **res}
 
 def require_cron_or_admin(authorization: Optional[str] = Header(None), x_cron_secret: Optional[str] = Header(None), token: Optional[str] = None) -> str:

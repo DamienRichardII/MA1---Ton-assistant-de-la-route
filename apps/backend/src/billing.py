@@ -77,6 +77,17 @@ def _dt(s: Optional[str]) -> Optional[datetime]:
     return datetime.fromisoformat(s.replace("Z", "+00:00"))
 
 
+def _checkout_summary(co: dict) -> str:
+    """Résumé court et non sensible d'un checkout non payé (statut + transactions), pour diagnostiquer un refus."""
+    import json
+    try:
+        tx = co.get("transactions") or []
+        extra = {k: co[k] for k in ("status", "failure_reason", "decline_reason", "message") if k in co}
+        return json.dumps({**extra, "transactions": tx}, ensure_ascii=False, default=str)[:450]
+    except Exception:
+        return str(co.get("status"))
+
+
 def _same_amount(sumup_amount: Any, cents: int) -> bool:
     try:
         return Decimal(str(sumup_amount)).quantize(Decimal("0.01")) == (Decimal(cents) / 100).quantize(Decimal("0.01"))
@@ -157,7 +168,10 @@ class BillingService:
         if status == "PENDING":
             return {"result": "pending"}
         if status != "PAID":
-            self.store.claim(sub["id"], {"status": "pending"}, {"status": "failed", "last_error": f"checkout_{status.lower() or 'unknown'}"})
+            detail = _checkout_summary(co)
+            log.warning("webhook: checkout %s non payé (%s) : %s", checkout_id, status or "?", detail)
+            self.store.claim(sub["id"], {"status": "pending"},
+                             {"status": "failed", "last_error": f"checkout_{status.lower() or 'unknown'}: {detail}"[:500]})
             return {"result": "failed"}
 
         # Carte enregistrée par le paiement de configuration.
