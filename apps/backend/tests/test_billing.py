@@ -326,7 +326,8 @@ def test_http_routes(monkeypatch, env):
     assert c.post("/payment/cancel", headers=h).json()["subscription"]["cancel_at_period_end"] is True
     assert c.post("/cron/billing").status_code in (401, 403)                              # cron protégé
     monkeypatch.setenv("CRON_SECRET", "cr0n")
-    assert c.post("/cron/billing", headers={"X-Cron-Secret": "cr0n"}).json()["results"]["checked"] == 0
+    out = c.post("/cron/billing", headers={"X-Cron-Secret": "cr0n"}).json()
+    assert out["results"]["checked"] == 0 and "reconcile" in out
 
 
 # ── Comptes : survie à un redéploiement (cache mémoire vidé) ──
@@ -393,3 +394,43 @@ async def test_every_plan_checkout_title_carries_the_MA1_brand(env, monkeypatch)
     assert len(descriptions) == 2 * len(B.PLANS)                       # souscription + renouvellement par plan
     assert all(d.startswith("MA1 ") for d in descriptions), descriptions
     assert {"MA1 Premium — essai 7 jours", "MA1 Premium Annuel", "MA1 Auto-École"} <= set(descriptions)
+
+
+# ── Réconciliation des souscriptions restées « pending » ──
+def backdate(store, uid, minutes):
+    sub = store.list_user(uid)[0]
+    store.update_subscription(sub["id"], {"created_at": (datetime.now(timezone.utc) - timedelta(minutes=minutes)).isoformat()})
+
+
+@pytest.mark.asyncio
+async def test_reconcile_records_decline_reason_and_keeps_pending(env):
+    svc, sumup, store, _ = env
+    await svc.start_subscription("u1", "a@b.fr", "A", "annual")
+    cid = next(iter(sumup.checkouts))
+    sumup.checkouts[cid]["transactions"] = [{"status": "FAILED", "payment_type": "ECOM", "reason": "card_declined"}]
+    assert (await svc.reconcile_pending())["skipped"] == 1                      # trop récent : on laisse le client réessayer
+    backdate(store, "u1", 10)
+    r = await svc.reconcile_pending()
+    sub = store.list_user("u1")[0]
+    assert r["checked"] == 1 and sub["status"] == "pending"                     # pas clos : le client peut encore payer
+    assert sub["last_error"].startswith("pending_with_attempts") and "card_declined" in sub["last_error"]
+
+
+@pytest.mark.asyncio
+async def test_reconcile_activates_paid_checkout_when_callback_was_lost(env):
+    svc, sumup, store, hooks = env
+    await svc.start_subscription("u1", "a@b.fr", "A", "annual")
+    cid = next(iter(sumup.checkouts)); sumup.customer_pays(cid, "u1")          # payé, mais aucun callback reçu
+    backdate(store, "u1", 10)
+    assert (await svc.reconcile_pending())["activated"] == 1
+    assert store.list_user("u1")[0]["status"] == "active" and hooks.plans == [("u1", "annual")]
+
+
+@pytest.mark.asyncio
+async def test_reconcile_expires_abandoned_checkouts(env):
+    svc, sumup, store, hooks = env
+    await svc.start_subscription("u1", "a@b.fr", "A", "annual")
+    backdate(store, "u1", 60 * 49)
+    assert (await svc.reconcile_pending())["expired"] == 1
+    sub = store.list_user("u1")[0]
+    assert sub["status"] == "failed" and sub["last_error"].startswith("expired_unpaid") and not hooks.plans

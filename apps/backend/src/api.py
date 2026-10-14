@@ -1032,9 +1032,10 @@ def require_cron_or_admin(authorization: Optional[str] = Header(None), x_cron_se
 
 @app.post("/cron/billing")
 async def cron_billing(_who: str = Depends(require_cron_or_admin)):
-    """Prélève les renouvellements échus. À appeler 1×/jour (idéalement toutes les heures) : header X-Cron-Secret."""
+    """Réconcilie les souscriptions en attente puis prélève les renouvellements échus. À appeler 1×/jour (idéalement toutes les heures) : header X-Cron-Secret."""
     svc = _need_billing()
-    return {"results": await svc.run_renewals()}
+    reconcile = await svc.reconcile_pending()
+    return {"results": await svc.run_renewals(), "reconcile": reconcile}
 
 # PRICING
 @app.post("/plan/upgrade")

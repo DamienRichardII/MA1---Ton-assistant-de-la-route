@@ -166,6 +166,12 @@ class BillingService:
 
         status = (co.get("status") or "").upper()
         if status == "PENDING":
+            # SumUp laisse le checkout « PENDING » après un refus de carte (le client peut réessayer) :
+            # on conserve le motif des tentatives (transactions) pour le diagnostic, sans clore l'abonnement.
+            if co.get("transactions"):
+                detail = _checkout_summary(co)
+                log.warning("checkout %s en attente avec tentatives : %s", checkout_id, detail)
+                self.store.update_subscription(sub["id"], {"last_error": f"pending_with_attempts: {detail}"[:500]})
             return {"result": "pending"}
         if status != "PAID":
             detail = _checkout_summary(co)
@@ -213,6 +219,31 @@ class BillingService:
         await self.hooks.apply_plan(sub["user_id"], sub["plan"])
         await self.hooks.notify("started", sub["user_id"], claimed)
         return {"result": "activated", "status": status_new}
+
+    async def reconcile_pending(self, now: Optional[datetime] = None, min_age_minutes: int = 3,
+                                max_age_hours: int = 48) -> dict:
+        """Filet de sécurité : relit chez SumUp les souscriptions restées « pending » (callback perdu ou refus de
+        carte). Active celles qui sont payées, consigne le motif des refus, abandonne celles de plus de 48 h."""
+        now = now or datetime.now(timezone.utc)
+        stats = {"checked": 0, "activated": 0, "declined": 0, "expired": 0, "skipped": 0}
+        for sub in self.store.pending():
+            created = _dt(sub.get("created_at"))
+            if created is None:
+                stats["skipped"] += 1; continue
+            age = now - created
+            if age < timedelta(minutes=min_age_minutes):
+                stats["skipped"] += 1; continue
+            if age > timedelta(hours=max_age_hours):
+                self.store.claim(sub["id"], {"status": "pending"}, {"status": "failed", "last_error": f"expired_unpaid | {sub.get('last_error') or ''}"[:500]})
+                stats["expired"] += 1; continue
+            stats["checked"] += 1
+            try:
+                res = await self.handle_checkout_event(sub["setup_checkout_id"])
+            except BillingError:
+                stats["skipped"] += 1; continue
+            if res.get("result") == "activated": stats["activated"] += 1
+            elif res.get("result") in ("failed", "rejected"): stats["declined"] += 1
+        return stats
 
     # ───────────────────────── Renouvellements ─────────────────────────
     async def run_renewals(self, now: Optional[datetime] = None) -> dict:

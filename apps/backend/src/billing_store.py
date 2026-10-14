@@ -44,6 +44,9 @@ class MemoryStore:
         rows = [copy.deepcopy(s) for s in self.subs.values() if s["user_id"] == user_id]
         return sorted(rows, key=lambda r: r["created_at"], reverse=True)
 
+    def pending(self) -> list[dict]:
+        return [copy.deepcopy(s) for s in self.subs.values() if s["status"] == "pending"]
+
     def due(self, now_iso: str) -> list[dict]:
         return [copy.deepcopy(s) for s in self.subs.values()
                 if s["status"] in LIVE and s.get("next_charge_at") and s["next_charge_at"] <= now_iso]
@@ -84,6 +87,9 @@ class SupabaseStore:
 
     def list_user(self, user_id: str) -> list[dict]:
         return self.sb.table("subscriptions").select("*").eq("user_id", user_id).order("created_at", desc=True).execute().data or []
+
+    def pending(self) -> list[dict]:
+        return self.sb.table("subscriptions").select("*").eq("status", "pending").execute().data or []
 
     def due(self, now_iso: str) -> list[dict]:
         return (self.sb.table("subscriptions").select("*").in_("status", list(LIVE))
