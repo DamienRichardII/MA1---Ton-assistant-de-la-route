@@ -1034,10 +1034,13 @@ async def sumup_webhook(request: Request, t: str = ""):
 def require_cron_or_admin(authorization: Optional[str] = Header(None), x_cron_secret: Optional[str] = Header(None), token: Optional[str] = None) -> str:
     import hmac
     secret = _env_clean("CRON_SECRET")
-    if secret and x_cron_secret and hmac.compare_digest(x_cron_secret.strip().encode(), secret.encode()):
+    got = (x_cron_secret or "").strip()
+    if secret and got and hmac.compare_digest(got.encode(), secret.encode()):
         return "cron"
-    if not secret:
-        print("[billing] CRON_SECRET absent ou vide côté serveur : seul un compte admin peut appeler /cron/billing", flush=True)
+    # Diagnostic d'un refus : jamais la valeur du secret, seulement sa présence et sa longueur.
+    recu = f"reçu (longueur {len(got)})" if x_cron_secret is not None else "ABSENT de la requête"
+    serveur = f"défini (longueur {len(secret)})" if secret else "ABSENT côté serveur"
+    print(f"[billing] /cron/billing refusé : en-tête X-Cron-Secret {recu} ; CRON_SECRET {serveur}", flush=True)
     return require_admin(authorization, token)
 
 @app.post("/cron/billing")

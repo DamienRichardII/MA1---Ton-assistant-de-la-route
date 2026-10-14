@@ -453,3 +453,15 @@ def test_secrets_tolerate_quotes_and_whitespace_from_hosting_ui(monkeypatch):
 
 
 async def _async(v): return v
+
+
+def test_cron_refusal_is_diagnosed_without_leaking_the_secret(monkeypatch, capsys):
+    from fastapi.testclient import TestClient
+    import api
+    monkeypatch.setenv("CRON_SECRET", "s3cret-value-xyz")
+    c = TestClient(api.app)
+    assert c.post("/cron/billing", headers={"X-Cron-Secret": "faux"}).status_code in (401, 403)
+    assert c.post("/cron/billing").status_code in (401, 403)
+    out = capsys.readouterr().out
+    assert "reçu (longueur 4)" in out and "ABSENT de la requête" in out and "défini (longueur 16)" in out
+    assert "s3cret-value-xyz" not in out and "faux" not in out
