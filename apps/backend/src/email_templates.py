@@ -336,7 +336,8 @@ def subscription_cancel_scheduled(name: str, plan_name: str, access_until: str |
 
 
 def subscription_ended(name: str, plan_name: str, reason: str) -> dict:
-    why = ("suite à plusieurs échecs de paiement" if reason == "payment_failed" else "comme demandé")
+    why = {"payment_failed": "suite à plusieurs échecs de paiement",
+           "period_ended": "car la période payée est arrivée à son terme"}.get(reason, "comme demandé")
     body = (f"<p>Bonjour {_escape(name) or ''},</p><p>Votre abonnement <strong>{_escape(plan_name)}</strong> a pris fin {why}. "
             f"Votre compte repasse au plan gratuit ; vos données et votre progression sont conservées.</p>")
     return {
@@ -344,4 +345,30 @@ def subscription_ended(name: str, plan_name: str, reason: str) -> dict:
         "html": _layout("Abonnement terminé", body, "Se réabonner", f"{FRONTEND_URL}/abonnement"),
         "text": _text_fallback("Abonnement terminé", [f"Votre abonnement {plan_name} a pris fin {why}.",
                                "Compte repassé au plan gratuit."], "Se réabonner", f"{FRONTEND_URL}/abonnement"),
+    }
+
+
+def access_started(name: str, plan_name: str, amount_cents: int, interval_months: int, end_iso: str | None) -> dict:
+    duree = "12 mois" if interval_months == 12 else "1 mois"
+    body = (f"<p>Bonjour {_escape(name) or ''},</p><p>Merci ! Votre paiement de <strong>{_fmt_eur(amount_cents)}</strong> est confirmé : "
+            f"votre accès <strong>{_escape(plan_name)}</strong> ({duree}) est actif jusqu'au <strong>{_fmt_date(end_iso)}</strong>.</p>"
+            f"<p style='font-size:13px;color:rgba(208,234,242,0.55)'>Aucun renouvellement automatique : vous ne serez pas prélevé à nouveau. "
+            f"Nous vous préviendrons par email avant la fin de votre accès, et vous pourrez le prolonger à tout moment.</p>")
+    return {
+        "subject": f"Votre accès MA1 {plan_name} est actif jusqu'au {_fmt_date(end_iso)}",
+        "html": _layout("Accès activé", body, "Commencer à réviser", f"{FRONTEND_URL}/chat"),
+        "text": _text_fallback("Accès activé", [f"Paiement de {_fmt_eur(amount_cents)} confirmé.", f"Accès {plan_name} ({duree}) actif jusqu'au {_fmt_date(end_iso)}.",
+                               "Aucun renouvellement automatique."], "Commencer à réviser", f"{FRONTEND_URL}/chat"),
+    }
+
+
+def access_expiring(name: str, plan_name: str, end_iso: str | None) -> dict:
+    body = (f"<p>Bonjour {_escape(name) or ''},</p><p>Votre accès <strong>{_escape(plan_name)}</strong> se termine le "
+            f"<strong>{_fmt_date(end_iso)}</strong>. Il ne se renouvelle pas automatiquement.</p>"
+            f"<p>Pour continuer sans interruption, prolongez-le dès maintenant : la nouvelle période s'ajoute à la fin de votre accès actuel, vous ne perdez aucun jour.</p>")
+    return {
+        "subject": f"Votre accès MA1 se termine le {_fmt_date(end_iso)}",
+        "html": _layout("Votre accès se termine bientôt", body, "Prolonger mon accès", f"{FRONTEND_URL}/abonnement"),
+        "text": _text_fallback("Votre accès se termine bientôt", [f"Votre accès {plan_name} se termine le {_fmt_date(end_iso)}.",
+                               "Pas de renouvellement automatique : prolongez-le pour continuer."], "Prolonger mon accès", f"{FRONTEND_URL}/abonnement"),
     }

@@ -899,6 +899,11 @@ def _env_clean(name: str, default: str = "") -> str:
         v = v.strip().strip('"').strip("'").strip("\\").strip()
     return v
 
+def payment_model() -> str:
+    """PAYMENT_MODEL = one_time (défaut) : accès prépayé 1 ou 12 mois, sans renouvellement automatique.
+    PAYMENT_MODEL = recurring : abonnement avec carte enregistrée (nécessite l'activation chez SumUp)."""
+    return "recurring" if _env_clean("PAYMENT_MODEL", "one_time").lower() == "recurring" else "one_time"
+
 def billing_enabled() -> bool:
     return bool(HAS_BILLING and _env_clean("PAYMENT_PROVIDER") == "sumup_api"
                 and _env_clean("SUMUP_API_KEY") and _env_clean("SUMUP_MERCHANT_CODE")
@@ -934,6 +939,10 @@ class _ApiBillingHooks(billing_mod.Hooks if HAS_BILLING else object):
             ra = extra.get("retry_at"); tpl = T.payment_failed(name, plan_name, ra.isoformat() if ra else None)
         elif kind == "cancel_scheduled":
             tpl = T.subscription_cancel_scheduled(name, plan_name, sub.get("current_period_end") or sub.get("next_charge_at"))
+        elif kind == "access_started":
+            tpl = T.access_started(name, plan_name, sub["amount_cents"], sub["interval_months"], sub.get("current_period_end"))
+        elif kind == "expiring_soon":
+            tpl = T.access_expiring(name, plan_name, sub.get("current_period_end"))
         elif kind == "ended":
             tpl = T.subscription_ended(name, plan_name, extra.get("reason", ""))
         else: return
@@ -955,7 +964,7 @@ def get_billing():
         _billing_svc = billing_mod.BillingService(
             client, _BillingSupabaseStore(get_supabase()), _ApiBillingHooks(),
             webhook_url=f"{api_public}/payment/webhook/sumup?t={_env_clean('SUMUP_WEBHOOK_SECRET')}",
-            redirect_url=f"{front}/abonnement/merci")
+            redirect_url=f"{front}/abonnement/merci", model=payment_model())
     return _billing_svc
 
 async def _refresh_plan(uid: str):
@@ -982,8 +991,8 @@ class SubscribeRequest(BaseModel):
 @app.get("/payment/config")
 def payment_config():
     plans = {k: {"name": v["name"], "amount_cents": v["amount_cents"], "interval_months": v["interval_months"],
-                 "trial_days": billing_mod.trial_days_for(k)} for k, v in billing_mod.PLANS.items()} if HAS_BILLING else {}
-    return {"enabled": billing_enabled(), "plans": plans}
+                 "trial_days": billing_mod.trial_days_for(k, payment_model())} for k, v in billing_mod.PLANS.items()} if HAS_BILLING else {}
+    return {"enabled": billing_enabled(), "model": payment_model(), "plans": plans}
 
 @app.post("/payment/subscribe")
 async def payment_subscribe(req: SubscribeRequest, _uid: str = Depends(require_auth)):
@@ -1062,7 +1071,8 @@ async def cron_billing(_who: str = Depends(require_cron_or_admin)):
     """Réconcilie les souscriptions en attente puis prélève les renouvellements échus. À appeler 1×/jour (idéalement toutes les heures) : header X-Cron-Secret."""
     svc = _need_billing()
     reconcile = await svc.reconcile_pending()
-    return {"results": await svc.run_renewals(), "reconcile": reconcile}
+    reminders = await svc.send_expiry_reminders()
+    return {"results": await svc.run_renewals(), "reconcile": reconcile, "reminders": reminders}
 
 # PRICING
 @app.post("/plan/upgrade")

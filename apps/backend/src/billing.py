@@ -50,9 +50,11 @@ class Hooks:
     async def notify(self, kind: str, user_id: str, sub: dict, **extra: Any) -> None: ...
 
 
-def trial_days_for(plan: str) -> int:
+def trial_days_for(plan: str, model: str = "recurring") -> int:
     """Durée d'essai (jours). Surchargeable : SUMUP_TRIAL_DAYS_PREMIUM=0 désactive l'essai."""
     default = PLANS[plan]["trial_days"]
+    if model == "one_time":
+        return 0                      # pas d'essai gratuit sans carte enregistrée
     if plan == "premium":
         try:
             return max(0, int(os.getenv("SUMUP_TRIAL_DAYS_PREMIUM", default)))
@@ -110,31 +112,48 @@ def _same_amount(sumup_amount: Any, cents: int) -> bool:
 
 class BillingService:
     def __init__(self, client: SumUpClient, store, hooks: Optional[Hooks] = None, *,
-                 webhook_url: str, redirect_url: str):
+                 webhook_url: str, redirect_url: str, model: str = "recurring"):
+        """model = "recurring" : abonnement, carte enregistrée, prélèvements automatiques.
+        model = "one_time"  : paiement unique pour 1 ou 12 mois d'accès, SANS renouvellement automatique
+                              (repli tant que SumUp n'a pas activé l'enregistrement de cartes)."""
         self.client, self.store, self.hooks = client, store, hooks or Hooks()
         self.webhook_url, self.redirect_url = webhook_url, redirect_url
+        self.model = model if model in ("recurring", "one_time") else "recurring"
 
     # ───────────────────────── Souscription ─────────────────────────
     async def start_subscription(self, user_id: str, email: str, name: str, plan: str) -> dict:
         if plan not in PLANS:
             raise BillingError("invalid_plan", "Plan invalide.", 400)
+        one_time = self.model == "one_time"
         history = self.store.list_user(user_id)
-        if any(s["status"] in LIVE for s in history):
+        live = next((s for s in history if s["status"] in LIVE), None)
+        # Abonnement automatique : un seul à la fois. Accès prépayé : on peut le prolonger à tout moment
+        # (la nouvelle période s'ajoute à la fin de l'accès en cours).
+        if live and not (one_time and not live.get("auto_renew", True)):
             raise BillingError("already_subscribed", "Vous avez déjà un abonnement actif.", 409)
         spec = PLANS[plan]
-        # Essai : une seule fois par utilisateur (aucun abonnement déjà activé par le passé).
+        months = spec["interval_months"]
+        # Essai : abonnement automatique seulement, une fois par utilisateur.
         had_one = any(s["status"] in LIVE + ("canceled",) for s in history)
-        trial_days = 0 if had_one else trial_days_for(plan)
+        trial_days = 0 if (one_time or had_one) else trial_days_for(plan)
         setup_cents = 0 if trial_days else spec["amount_cents"]
+        ref = f"ma1-{user_id}-{int(datetime.now(timezone.utc).timestamp())}-{uuid.uuid4().hex[:6]}"
 
         try:
-            await self.client.ensure_customer(user_id, email, name)
-            ref = f"ma1-{user_id}-{int(datetime.now(timezone.utc).timestamp())}-{uuid.uuid4().hex[:6]}"
-            co = await self.client.create_checkout(
-                reference=ref, amount_cents=setup_cents, currency=CURRENCY,
-                description=f"MA1 {spec['name']}" + (f" — essai {trial_days} jours" if trial_days else ""),
-                customer_id=user_id, purpose="SETUP_RECURRING_PAYMENT",
-                return_url=self.webhook_url, redirect_url=self.redirect_url, hosted=True)
+            if one_time:
+                # Paiement hébergé ordinaire (type validé en réel : aucun client SumUp, aucune carte enregistrée).
+                co = await self.client.create_checkout(
+                    reference=ref, amount_cents=setup_cents, currency=CURRENCY,
+                    description=f"MA1 {spec['name']} — {'12 mois' if months == 12 else '1 mois'} d'accès",
+                    customer_id=None, purpose=None,
+                    return_url=self.webhook_url, redirect_url=self.redirect_url, hosted=True)
+            else:
+                await self.client.ensure_customer(user_id, email, name)
+                co = await self.client.create_checkout(
+                    reference=ref, amount_cents=setup_cents, currency=CURRENCY,
+                    description=f"MA1 {spec['name']}" + (f" — essai {trial_days} jours" if trial_days else ""),
+                    customer_id=user_id, purpose="SETUP_RECURRING_PAYMENT",
+                    return_url=self.webhook_url, redirect_url=self.redirect_url, hosted=True)
         except SumUpError as e:
             log.error("subscribe: SumUp error %s", e)
             raise BillingError("provider_error", "Le paiement est momentanément indisponible. Réessayez plus tard.", 502)
@@ -150,11 +169,13 @@ class BillingService:
                 self.store.update_subscription(s["id"], {"status": "failed", "last_error": "superseded"})
         self.store.insert_subscription({
             "user_id": user_id, "plan": plan, "status": "pending", "amount_cents": spec["amount_cents"],
-            "currency": CURRENCY, "interval_months": spec["interval_months"], "trial_days": trial_days,
-            "sumup_customer_id": user_id, "setup_checkout_id": co["id"], "setup_reference": ref,
+            "currency": CURRENCY, "interval_months": months, "trial_days": trial_days,
+            "sumup_customer_id": None if one_time else user_id, "auto_renew": not one_time,
+            "setup_checkout_id": co["id"], "setup_reference": ref,
         })
         return {"checkout_url": url, "plan": plan, "trial_days": trial_days, "amount_cents": spec["amount_cents"],
-                "charged_now_cents": setup_cents}
+                "charged_now_cents": setup_cents, "auto_renew": not one_time, "interval_months": months,
+                "extends_access": bool(live)}
 
     # ───────────────────── Callback SumUp (webhook) ─────────────────────
     async def handle_checkout_event(self, checkout_id: str) -> dict:
@@ -197,6 +218,9 @@ class BillingService:
                              {"status": "failed", "last_error": f"checkout_{status.lower() or 'unknown'}: {detail}"[:500]})
             return {"result": "failed"}
 
+        if not sub.get("auto_renew", True):
+            return await self._activate_prepaid(sub, checkout_id, expected)
+
         # Carte enregistrée par le paiement de configuration.
         try:
             instruments = await self.client.list_payment_instruments(sub["sumup_customer_id"])
@@ -236,6 +260,50 @@ class BillingService:
         await self.hooks.apply_plan(sub["user_id"], sub["plan"])
         await self.hooks.notify("started", sub["user_id"], claimed)
         return {"result": "activated", "status": status_new}
+
+    async def _activate_prepaid(self, sub: dict, checkout_id: str, paid_cents: int) -> dict:
+        """Accès prépayé (sans renouvellement) : actif jusqu'à la fin de la période payée, puis expiration par le cron.
+        Si un accès prépayé est déjà en cours, la nouvelle période s'ajoute à sa fin (prolongation)."""
+        now = datetime.now(timezone.utc)
+        prev = next((x for x in self.store.list_user(sub["user_id"])
+                     if x["id"] != sub["id"] and x["status"] in LIVE), None)
+        start = now
+        if prev:
+            prev_end = _dt(prev.get("current_period_end"))
+            if prev_end and prev_end > now:
+                start = prev_end
+        end = add_months(start, sub["interval_months"])
+        if prev:   # un seul accès « vivant » par utilisateur (index unique) : l'ancien est clos AVANT l'activation
+            self.store.update_subscription(prev["id"], {
+                "status": "canceled", "canceled_at": _iso(now), "next_charge_at": None,
+                "cancel_at_period_end": False, "last_error": "extended"})
+        claimed = self.store.claim(sub["id"], {"status": "pending"}, {
+            "status": "active", "payment_token": None, "anchor_at": _iso(now), "periods_paid": 1, "trial_end": None,
+            "current_period_end": _iso(end), "next_charge_at": _iso(end),   # échéance = fin d'accès (aucun prélèvement)
+            "cancel_at_period_end": True, "attempts": 0, "last_error": None})
+        if not claimed:
+            return {"result": "already_processed"}
+        self.store.insert_payment({
+            "subscription_id": sub["id"], "user_id": sub["user_id"], "checkout_id": checkout_id,
+            "checkout_reference": sub["setup_reference"], "kind": "setup", "amount_cents": paid_cents,
+            "currency": sub["currency"], "status": "paid"})
+        await self.hooks.apply_plan(sub["user_id"], sub["plan"])
+        await self.hooks.notify("access_started", sub["user_id"], claimed)
+        return {"result": "activated", "status": "active"}
+
+    async def send_expiry_reminders(self, now: Optional[datetime] = None, days: int = 7) -> dict:
+        """Email de rappel (une seule fois) aux accès prépayés qui se terminent dans `days` jours ou moins."""
+        now = now or datetime.now(timezone.utc)
+        sent = 0
+        for sub in self.store.live():
+            if sub.get("auto_renew", True) or sub.get("reminder_sent_at"):
+                continue
+            end = _dt(sub.get("current_period_end"))
+            if end and now < end <= now + timedelta(days=days):
+                self.store.update_subscription(sub["id"], {"reminder_sent_at": _iso(now)})
+                await self.hooks.notify("expiring_soon", sub["user_id"], sub)
+                sent += 1
+        return {"sent": sent}
 
     async def reconcile_pending(self, now: Optional[datetime] = None, min_age_minutes: int = 3,
                                 max_age_hours: int = 48) -> dict:
@@ -318,7 +386,7 @@ class BillingService:
 
     async def _renew_one(self, sub: dict, now: datetime) -> str:
         if sub.get("cancel_at_period_end"):
-            await self._finalize_cancel(sub, "canceled_by_user")
+            await self._finalize_cancel(sub, "canceled_by_user" if sub.get("auto_renew", True) else "period_ended")
             return "canceled"
         if not sub.get("payment_token"):
             await self._finalize_cancel(sub, "no_payment_token")
@@ -389,6 +457,8 @@ class BillingService:
         sub = self._live(user_id)
         if not sub:
             raise BillingError("no_subscription", "Aucun abonnement actif.", 404)
+        if not sub.get("auto_renew", True):
+            return self.public(sub)          # accès prépayé : rien à résilier, il s'arrête à sa date de fin
         if not sub["cancel_at_period_end"]:
             sub = self.store.update_subscription(sub["id"], {"cancel_at_period_end": True})
             await self.hooks.notify("cancel_scheduled", user_id, sub)
@@ -398,6 +468,8 @@ class BillingService:
         sub = self._live(user_id)
         if not sub:
             raise BillingError("no_subscription", "Aucun abonnement actif.", 404)
+        if not sub.get("auto_renew", True):
+            return self.public(sub)          # accès prépayé : on le prolonge par un nouveau paiement
         if sub["cancel_at_period_end"]:
             sub = self.store.update_subscription(sub["id"], {"cancel_at_period_end": False})
         return self.public(sub)
@@ -429,7 +501,8 @@ class BillingService:
     def public(sub: dict) -> dict:
         """Vue exposée au front : jamais le jeton de carte."""
         keys = ("plan", "status", "amount_cents", "currency", "interval_months", "trial_days", "trial_end",
-                "current_period_end", "next_charge_at", "cancel_at_period_end", "card_last4", "card_brand")
+                "current_period_end", "next_charge_at", "cancel_at_period_end", "card_last4", "card_brand", "auto_renew")
         out = {k: sub.get(k) for k in keys}
+        out["auto_renew"] = sub.get("auto_renew", True)
         out["plan_name"] = PLANS.get(sub["plan"], {}).get("name", sub["plan"])
         return out

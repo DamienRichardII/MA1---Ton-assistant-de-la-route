@@ -9,7 +9,8 @@ LIVE = ("trialing", "active", "past_due")
 # Valeurs par défaut identiques à scripts/016_create_subscriptions.sql (Supabase les applique côté base).
 SUB_DEFAULTS = {"trial_days": 0, "periods_paid": 0, "cancel_at_period_end": False, "attempts": 0, "currency": "EUR",
                 "payment_token": None, "card_last4": None, "card_brand": None, "anchor_at": None, "trial_end": None,
-                "current_period_end": None, "next_charge_at": None, "last_error": None, "canceled_at": None}
+                "current_period_end": None, "next_charge_at": None, "last_error": None, "canceled_at": None,
+                "auto_renew": True, "reminder_sent_at": None}
 
 
 def _now_iso() -> str:
@@ -46,6 +47,9 @@ class MemoryStore:
 
     def pending(self) -> list[dict]:
         return [copy.deepcopy(s) for s in self.subs.values() if s["status"] == "pending"]
+
+    def live(self) -> list[dict]:
+        return [copy.deepcopy(s) for s in self.subs.values() if s["status"] in LIVE]
 
     def due(self, now_iso: str) -> list[dict]:
         return [copy.deepcopy(s) for s in self.subs.values()
@@ -90,6 +94,9 @@ class SupabaseStore:
 
     def pending(self) -> list[dict]:
         return self.sb.table("subscriptions").select("*").eq("status", "pending").execute().data or []
+
+    def live(self) -> list[dict]:
+        return self.sb.table("subscriptions").select("*").in_("status", list(LIVE)).execute().data or []
 
     def due(self, now_iso: str) -> list[dict]:
         return (self.sb.table("subscriptions").select("*").in_("status", list(LIVE))

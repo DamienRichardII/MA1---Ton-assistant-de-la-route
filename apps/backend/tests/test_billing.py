@@ -448,6 +448,7 @@ def test_secrets_tolerate_quotes_and_whitespace_from_hosting_ui(monkeypatch):
     assert api._env_clean("CRON_SECRET") == "cr0n-secret"
     monkeypatch.setattr(api, "get_billing", lambda: type("S", (), {
         "reconcile_pending": staticmethod(lambda: _async({"checked": 0})),
+        "send_expiry_reminders": staticmethod(lambda: _async({"sent": 0})),
         "run_renewals": staticmethod(lambda: _async({"checked": 0}))})())
     c = TestClient(api.app)
     assert c.post("/cron/billing", headers={"X-Cron-Secret": "cr0n-secret "}).status_code == 200
@@ -502,3 +503,117 @@ def test_diagnostic_routes_are_protected(monkeypatch, env):
     assert c.get("/payment/diagnostic/checkout/x").status_code in (401, 403)
     r = c.post("/payment/diagnostic/checkout?variant=plain", headers={"X-Cron-Secret": "cr0n"})
     assert r.status_code == 200 and r.json()["url"].startswith("https://checkout.sumup.com/")
+
+
+# ── Accès prépayé (PAYMENT_MODEL=one_time) : aucun prélèvement automatique ──
+@pytest.fixture
+def env1():
+    sumup, store, hooks = FakeSumUp(), MemoryStore(), RecordingHooks()
+    client = SumUpClient("sk-test", "MCODE", transport=httpx.MockTransport(sumup.handler))
+    svc = B.BillingService(client, store, hooks, webhook_url="https://api.test/payment/webhook/sumup?t=s",
+                           redirect_url="https://ma1.test/abonnement/merci", model="one_time")
+    return svc, sumup, store, hooks
+
+
+async def buy(svc, sumup, uid="u1", plan="premium"):
+    r = await svc.start_subscription(uid, "a@b.fr", "Ana", plan)
+    cid = list(sumup.checkouts)[-1]
+    sumup.checkouts[cid]["status"] = "PAID"                                    # paiement hébergé réussi (aucune carte enregistrée)
+    return r, cid, await svc.handle_checkout_event(cid)
+
+
+@pytest.mark.asyncio
+async def test_prepaid_checkout_is_plain_hosted_payment_without_trial(env1, monkeypatch):
+    svc, sumup, store, _ = env1
+    monkeypatch.setenv("SUMUP_TRIAL_DAYS_PREMIUM", "7")                        # ignoré : pas d'essai sans carte enregistrée
+    r = await svc.start_subscription("u1", "a@b.fr", "Ana", "premium")
+    co = next(iter(sumup.checkouts.values()))
+    assert "purpose" not in co and "customer_id" not in co and co["amount"] == 10.0   # comme le test A validé en réel
+    assert co["hosted_checkout"] == {"enabled": True} and co["description"] == "MA1 Premium — 1 mois d'accès"
+    assert r["trial_days"] == 0 and r["charged_now_cents"] == 1000 and r["auto_renew"] is False
+    assert not [c for c in sumup.calls if c[1] == "/v0.1/customers"]            # aucun client SumUp créé
+    assert store.list_user("u1")[0]["auto_renew"] is False
+
+
+@pytest.mark.asyncio
+async def test_prepaid_activation_sets_end_date_and_never_charges(env1):
+    svc, sumup, store, hooks = env1
+    _, cid, res = await buy(svc, sumup, "u1", "annual")
+    assert res == {"result": "activated", "status": "active"}
+    sub = store.list_user("u1")[0]
+    assert sub["payment_token"] is None and sub["cancel_at_period_end"] is True and sub["auto_renew"] is False
+    end = datetime.fromisoformat(sub["current_period_end"])
+    assert 360 <= (end - datetime.now(timezone.utc)).days <= 366 and sub["next_charge_at"] == sub["current_period_end"]
+    assert hooks.plans == [("u1", "annual")] and hooks.events == ["access_started"] and store.pays[cid]["amount_cents"] == 7900
+    assert not [c for c in sumup.calls if "payment-instruments" in c[1]]        # aucune carte enregistrée
+    again = await svc.handle_checkout_event(cid)
+    assert again["result"] == "already_processed" and len(store.pays) == 1
+
+
+@pytest.mark.asyncio
+async def test_prepaid_access_expires_without_any_charge(env1):
+    svc, sumup, store, hooks = env1
+    await buy(svc, sumup, "u1", "premium")
+    assert svc.effective_plan("u1") == "premium"
+    make_due(store, "u1")                                                       # fin de la période payée
+    assert (await svc.run_renewals())["canceled"] == 1
+    assert not [c for c in sumup.calls if c[0] == "PUT"]                        # JAMAIS de prélèvement
+    assert svc.effective_plan("u1") == "free" and hooks.plans[-1] == ("u1", "free") and hooks.events[-1] == "ended"
+    assert store.list_user("u1")[0]["last_error"] == "period_ended"
+
+
+@pytest.mark.asyncio
+async def test_prepaid_expiry_reminder_sent_once_within_7_days(env1):
+    svc, sumup, store, hooks = env1
+    await buy(svc, sumup, "u1", "premium")
+    assert (await svc.send_expiry_reminders())["sent"] == 0                     # fin dans ~30 jours : trop tôt
+    sub = store.list_user("u1")[0]
+    store.update_subscription(sub["id"], {"current_period_end": (datetime.now(timezone.utc) + timedelta(days=5)).isoformat()})
+    assert (await svc.send_expiry_reminders())["sent"] == 1 and hooks.events[-1] == "expiring_soon"
+    assert (await svc.send_expiry_reminders())["sent"] == 0                     # un seul rappel
+
+
+@pytest.mark.asyncio
+async def test_prepaid_can_be_extended_and_periods_stack(env1):
+    svc, sumup, store, hooks = env1
+    await buy(svc, sumup, "u1", "premium")
+    first_end = datetime.fromisoformat(store.list_user("u1")[0]["current_period_end"])
+    r = await svc.start_subscription("u1", "a@b.fr", "Ana", "premium")          # prolongation autorisée
+    assert r["extends_access"] is True
+    cid = list(sumup.checkouts)[-1]; sumup.checkouts[cid]["status"] = "PAID"
+    assert (await svc.handle_checkout_event(cid))["result"] == "activated"
+    rows = store.list_user("u1")
+    live = [x for x in rows if x["status"] == "active"]
+    assert len(live) == 1 and any(x["last_error"] == "extended" and x["status"] == "canceled" for x in rows)
+    assert datetime.fromisoformat(live[0]["current_period_end"]).date() == B.add_months(first_end, 1).date()   # période ajoutée à la suite
+    assert svc.effective_plan("u1") == "premium"                                # pas de coupure, pas de rétrogradation
+
+
+@pytest.mark.asyncio
+async def test_prepaid_public_view_and_cancel_is_noop(env1):
+    svc, sumup, store, hooks = env1
+    await buy(svc, sumup, "u1", "premium")
+    st = svc.get_status("u1")
+    assert st["auto_renew"] is False and "payment_token" not in st
+    n = len(hooks.events)
+    out = await svc.cancel("u1")                                                # rien à résilier : l'accès s'arrête à sa date
+    assert out["auto_renew"] is False and len(hooks.events) == n and svc.effective_plan("u1") == "premium"
+
+
+@pytest.mark.asyncio
+async def test_recurring_subscription_still_blocks_a_second_purchase(env):
+    svc, sumup, *_ = env
+    await subscribe_and_pay(svc, sumup, "u1", "annual")
+    with pytest.raises(B.BillingError) as e: await svc.start_subscription("u1", "a@b.fr", "A", "premium")
+    assert e.value.http_status == 409
+
+
+def test_payment_model_defaults_to_one_time_and_config_hides_trial(monkeypatch):
+    from fastapi.testclient import TestClient
+    import api
+    monkeypatch.delenv("PAYMENT_MODEL", raising=False)
+    assert api.payment_model() == "one_time"
+    cfg = TestClient(api.app).get("/payment/config").json()
+    assert cfg["model"] == "one_time" and all(p["trial_days"] == 0 for p in cfg["plans"].values())
+    monkeypatch.setenv("PAYMENT_MODEL", ' "recurring" ')
+    assert api.payment_model() == "recurring"

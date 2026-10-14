@@ -1,6 +1,15 @@
 # Paiement — abonnements récurrents SumUp (carte enregistrée)
 
-Statut : **code livré, désactivé par défaut, à valider en sandbox SumUp avant ouverture.**
+Statut : **deux modèles de paiement, choisis par `PAYMENT_MODEL` (Railway).**
+
+| `PAYMENT_MODEL` | Fonctionnement | État |
+|---|---|---|
+| `one_time` (**défaut**) | **Accès prépayé** : paiement hébergé ordinaire de 10 € (1 mois), 79 € (12 mois) ou 200 € (1 mois, Auto-École). Accès actif jusqu'à la fin de la période payée, **aucun prélèvement automatique**, email de rappel 7 jours avant la fin, prolongation par un nouveau paiement (les périodes s'ajoutent). Pas d'essai gratuit. | **Validé en réel** (test A : paiement hébergé ordinaire accepté). |
+| `recurring` | Abonnement avec carte enregistrée et prélèvements automatiques (décrit ci-dessous). | **Bloqué** : SumUp refuse `SETUP_RECURRING_PAYMENT` sur le compte `MX59JV88` (tests B refusé / C réussi). À rouvrir quand le support SumUp l'aura activé, puis `PAYMENT_MODEL=recurring`. |
+
+Mise en service du mode `one_time` : exécuter `scripts/017_subscriptions_prepaid_access.sql` (colonnes `auto_renew`, `reminder_sent_at`), puis laisser `PAYMENT_MODEL` absent ou à `one_time`. L'expiration et les rappels sont exécutés par `POST /cron/billing` (1×/jour). **Le texte des CGV doit décrire un accès prépayé sans renouvellement automatique.**
+
+Le reste de ce document décrit le mode `recurring`.
 
 ## Principe
 SumUp encaisse mais ne gère pas les abonnements : MA1 les gère.
