@@ -796,7 +796,7 @@ html[data-theme="light"] .road-anim{opacity:0.12}
 
 
 /* ═══ POSITIONING RESULTS ═══ */
-.pos-results{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding:24px;max-width:400px;animation:fadeIn 0.4s ease}
+.pos-results{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding:24px;max-width:520px;margin:auto;animation:fadeIn 0.4s ease}
 .pos-score-ring{width:100px;height:100px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .pos-score-ring.pass{background:rgba(48,209,88,0.06);border:3px solid rgba(48,209,88,0.3)}
 .pos-score-ring.fail{background:rgba(255,69,58,0.04);border:3px solid rgba(255,69,58,0.2)}
@@ -1580,16 +1580,16 @@ addMsg=function(role,text,sources){
 
 /* ── POSITIONING TEST ────────────────────────── */
 const POS_QUESTIONS=[
-{q:"Quelle est la vitesse max sur autoroute par temps sec ?",choices:["110 km/h","130 km/h","150 km/h","120 km/h"],answer:1,topic:"vitesse"},
-{q:"A un carrefour sans signalisation, qui a la priorite ?",choices:["Celui qui vient de gauche","Celui qui vient de droite","Le premier arrive","Celui qui va tout droit"],answer:1,topic:"priorite"},
-{q:"Quel est le taux d'alcoolemie max pour un jeune conducteur ?",choices:["0,5 g/L","0,2 g/L","0,8 g/L","0 g/L"],answer:1,topic:"alcool"},
-{q:"Que signifie un panneau rond a fond bleu ?",choices:["Interdiction","Obligation","Indication","Danger"],answer:1,topic:"signalisation"},
-{q:"Quelle est la distance de securite minimum ?",choices:["1 seconde","2 secondes","3 secondes","4 secondes"],answer:1,topic:"vitesse"},
-{q:"En permis probatoire, combien de points avez-vous au depart ?",choices:["12 points","6 points","8 points","10 points"],answer:1,topic:"permis"},
-{q:"Ou est-il interdit de stationner ?",choices:["Sur un trottoir","Dans une zone bleue","A 3m d'un passage pieton","Les trois"],answer:0,topic:"stationnement"},
-{q:"Que faire en premier sur un lieu d'accident ?",choices:["Appeler les secours","Proteger","Secourir","Deplacer les vehicules"],answer:1,topic:"premiers_secours"},
-{q:"Quelle est la vitesse max sur autoroute sous la pluie ?",choices:["110 km/h","130 km/h","100 km/h","90 km/h"],answer:0,topic:"autoroute"},
-{q:"Le port de la ceinture est-il obligatoire a l'arriere ?",choices:["Oui toujours","Non","Seulement sur autoroute","Seulement pour les enfants"],answer:0,topic:"securite"},
+{q:"Quelle est la vitesse max sur autoroute par temps sec ?",choices:["110 km/h","130 km/h","150 km/h","120 km/h"],answer:1,topic:"vitesse",exp:"130 km/h par temps sec sur autoroute (110 km/h sous la pluie). Art. R413-2 du Code de la route."},
+{q:"A un carrefour sans signalisation, qui a la priorite ?",choices:["Celui qui vient de gauche","Celui qui vient de droite","Le premier arrive","Celui qui va tout droit"],answer:1,topic:"priorite",exp:"En l'absence de signalisation, on cède le passage au véhicule venant de droite : c'est la priorité à droite. Art. R415-6."},
+{q:"Quel est le taux d'alcoolemie max pour un jeune conducteur ?",choices:["0,5 g/L","0,2 g/L","0,8 g/L","0 g/L"],answer:1,topic:"alcool",exp:"Pour un conducteur en permis probatoire, le taux maximal est de 0,2 g/L de sang (0,5 g/L pour les autres). Art. R234-1."},
+{q:"Que signifie un panneau rond a fond bleu ?",choices:["Interdiction","Obligation","Indication","Danger"],answer:1,topic:"signalisation",exp:"Un panneau rond à fond bleu indique une obligation (ex. direction obligatoire, vitesse minimale)."},
+{q:"Quelle est la distance de securite minimum ?",choices:["1 seconde","2 secondes","3 secondes","4 secondes"],answer:1,topic:"vitesse",exp:"La distance de sécurité correspond à au moins 2 secondes d'intervalle avec le véhicule qui précède. Art. R412-12."},
+{q:"En permis probatoire, combien de points avez-vous au depart ?",choices:["12 points","6 points","8 points","10 points"],answer:1,topic:"permis",exp:"Le permis probatoire démarre avec 6 points (12 points au bout de 3 ans, ou 2 ans après une formation en conduite accompagnée). Art. L223-1."},
+{q:"Ou est-il interdit de stationner ?",choices:["Sur un trottoir","Dans une zone bleue","A 3m d'un passage pieton","Les trois"],answer:0,topic:"stationnement",exp:"Stationner sur un trottoir est interdit (stationnement très gênant, art. R417-10). La zone bleue, elle, est autorisée avec un disque de stationnement."},
+{q:"Que faire en premier sur un lieu d'accident ?",choices:["Appeler les secours","Proteger","Secourir","Deplacer les vehicules"],answer:1,topic:"premiers_secours",exp:"Il faut d'abord protéger (baliser, éviter le suras-accident), puis alerter les secours (15/18/112) et enfin secourir : la séquence P.A.S."},
+{q:"Quelle est la vitesse max sur autoroute sous la pluie ?",choices:["110 km/h","130 km/h","100 km/h","90 km/h"],answer:0,topic:"autoroute",exp:"Sous la pluie, la vitesse maximale sur autoroute est abaissée à 110 km/h. Art. R413-2."},
+{q:"Le port de la ceinture est-il obligatoire a l'arriere ?",choices:["Oui toujours","Non","Seulement sur autoroute","Seulement pour les enfants"],answer:0,topic:"securite",exp:"La ceinture est obligatoire à toutes les places, à l'arrière comme à l'avant. Art. R412-1."},
 ];
 let posIdx=0,posAnswers=[];
 function startPositioning(){
@@ -1607,7 +1607,14 @@ function renderPosQ(){
   q.choices.forEach((c,i)=>{
     const btn=document.createElement('button');btn.className='pos-choice';
     btn.innerHTML=`<span class="choice-letter">${['A','B','C','D'][i]}</span>${c}`;
-    btn.onclick=()=>{posAnswers.push({topic:q.topic,correct:i===q.answer});posIdx++;renderPosQ()};
+    btn.onclick=()=>{
+      if(cl.dataset.locked)return;cl.dataset.locked='1';
+      const ok=i===q.answer;const bs=cl.querySelectorAll('.pos-choice');
+      bs[q.answer].style.cssText+=';background:rgba(46,213,115,0.18)!important;border-color:#2ed573!important;color:#2ed573!important';
+      if(!ok)btn.style.cssText+=';background:rgba(255,71,87,0.18)!important;border-color:#ff4757!important;color:#ff4757!important';
+      posAnswers.push({topic:q.topic,correct:ok,picked:i});
+      setTimeout(()=>{delete cl.dataset.locked;posIdx++;renderPosQ()},1100);
+    };
     cl.appendChild(btn);
   });
 }
@@ -1641,6 +1648,15 @@ function finishPositioning(){
       '<div class="pos-stat"><div style="font-family:var(--fd);font-size:18px;font-weight:800;color:var(--red)">'+(total-ok)+'</div><div style="font-size:9px;color:var(--t3)">ERREURS</div></div>'+
       '<div class="pos-stat"><div style="font-family:var(--fd);font-size:18px;font-weight:800;color:var(--purple)">+15</div><div style="font-size:9px;color:var(--t3)">XP</div></div>'+
     '</div>'+
+    '<div style="width:100%;max-width:480px;text-align:left;margin-top:14px"><div style="font-family:var(--fd);font-weight:700;font-size:13px;margin-bottom:8px">Correction detaillee</div>'+
+    POS_QUESTIONS.map(function(q,n){var a=posAnswers[n];if(!a)return '';var L=['A','B','C','D'];
+      return '<div style="margin-bottom:10px;padding:12px;border-radius:14px;border:1px solid '+(a.correct?'rgba(46,213,115,0.3)':'rgba(255,71,87,0.35)')+';background:'+(a.correct?'rgba(46,213,115,0.06)':'rgba(255,71,87,0.06)')+'">'+
+        '<div style="font-size:13px;font-weight:700;margin-bottom:6px">'+(a.correct?'✅':'❌')+' '+(n+1)+'. '+esc(q.q)+'</div>'+
+        (a.correct?'':'<div style="font-size:12px;color:var(--red);margin-bottom:3px">Votre reponse : '+L[a.picked]+'. '+esc(q.choices[a.picked])+'</div>')+
+        '<div style="font-size:12px;color:var(--green);margin-bottom:6px">Bonne reponse : '+L[q.answer]+'. '+esc(q.choices[q.answer])+'</div>'+
+        '<div style="font-size:12px;color:var(--t2);line-height:1.5">💡 '+esc(q.exp)+'</div></div>';
+    }).join('')+
+    '<div style="font-size:10px;color:var(--t3);margin-top:4px">Outil pedagogique — verifiez sur Legifrance.</div></div>'+
     '<button onclick="closePosResults()" style="margin-top:16px;padding:12px 32px;border-radius:50px;border:none;background:linear-gradient(135deg,var(--teal),var(--sky));color:#fff;font-family:var(--fd);font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 4px 20px rgba(10,132,255,0.3)">Commencer les revisions →</button>'+
   '</div>';
   // Send to backend

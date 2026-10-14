@@ -28,16 +28,16 @@ export const TIPS = [
 ];
 
 export const POSITIONING_QUESTIONS = [
-  { q: "Vitesse max sur autoroute par temps sec ?", choices: ["110 km/h", "130 km/h", "150 km/h", "120 km/h"], answer: 1, topic: "vitesse" },
-  { q: "Carrefour sans signalisation, qui a la priorité ?", choices: ["Gauche", "Droite", "Premier arrivé", "Tout droit"], answer: 1, topic: "priorite" },
-  { q: "Alcoolémie max jeune conducteur ?", choices: ["0,5 g/L", "0,2 g/L", "0,8 g/L", "0 g/L"], answer: 1, topic: "alcool" },
-  { q: "Panneau rond à fond bleu signifie ?", choices: ["Interdiction", "Obligation", "Indication", "Danger"], answer: 1, topic: "signalisation" },
-  { q: "Distance de sécurité minimum ?", choices: ["1 seconde", "2 secondes", "3 secondes", "4 secondes"], answer: 1, topic: "vitesse" },
-  { q: "Points au départ en probatoire ?", choices: ["12", "6", "8", "10"], answer: 1, topic: "permis" },
-  { q: "Interdit de stationner sur ?", choices: ["Un trottoir", "Zone bleue", "3m d'un passage piéton", "Les trois"], answer: 0, topic: "stationnement" },
-  { q: "Premier geste sur un lieu d'accident ?", choices: ["Appeler", "Protéger", "Secourir", "Déplacer"], answer: 1, topic: "premiers_secours" },
-  { q: "Vitesse max autoroute sous la pluie ?", choices: ["110 km/h", "130 km/h", "100 km/h", "90 km/h"], answer: 0, topic: "autoroute" },
-  { q: "Ceinture obligatoire à l'arrière ?", choices: ["Oui toujours", "Non", "Autoroute seulement", "Enfants seulement"], answer: 0, topic: "securite" },
+  { q: "Vitesse max sur autoroute par temps sec ?", choices: ["110 km/h", "130 km/h", "150 km/h", "120 km/h"], answer: 1, topic: "vitesse" , exp: "130 km/h par temps sec sur autoroute (110 km/h sous la pluie). Art. R413-2 du Code de la route." },
+  { q: "Carrefour sans signalisation, qui a la priorité ?", choices: ["Gauche", "Droite", "Premier arrivé", "Tout droit"], answer: 1, topic: "priorite" , exp: "En l'absence de signalisation, on cède le passage au véhicule venant de droite : c'est la priorité à droite. Art. R415-6." },
+  { q: "Alcoolémie max jeune conducteur ?", choices: ["0,5 g/L", "0,2 g/L", "0,8 g/L", "0 g/L"], answer: 1, topic: "alcool" , exp: "Pour un conducteur en permis probatoire, le taux maximal est de 0,2 g/L de sang (0,5 g/L pour les autres). Art. R234-1." },
+  { q: "Panneau rond à fond bleu signifie ?", choices: ["Interdiction", "Obligation", "Indication", "Danger"], answer: 1, topic: "signalisation" , exp: "Un panneau rond à fond bleu indique une obligation (ex. direction obligatoire, vitesse minimale)." },
+  { q: "Distance de sécurité minimum ?", choices: ["1 seconde", "2 secondes", "3 secondes", "4 secondes"], answer: 1, topic: "vitesse" , exp: "La distance de sécurité correspond à au moins 2 secondes d'intervalle avec le véhicule qui précède. Art. R412-12." },
+  { q: "Points au départ en probatoire ?", choices: ["12", "6", "8", "10"], answer: 1, topic: "permis" , exp: "Le permis probatoire démarre avec 6 points (12 points au bout de 3 ans, ou 2 ans après une formation en conduite accompagnée). Art. L223-1." },
+  { q: "Interdit de stationner sur ?", choices: ["Un trottoir", "Zone bleue", "3m d'un passage piéton", "Les trois"], answer: 0, topic: "stationnement" , exp: "Stationner sur un trottoir est interdit (stationnement très gênant, art. R417-10). La zone bleue, elle, est autorisée avec un disque de stationnement." },
+  { q: "Premier geste sur un lieu d'accident ?", choices: ["Appeler", "Protéger", "Secourir", "Déplacer"], answer: 1, topic: "premiers_secours" , exp: "Il faut d'abord protéger (baliser, éviter le suras-accident), puis alerter les secours (15/18/112) et enfin secourir : la séquence P.A.S." },
+  { q: "Vitesse max autoroute sous la pluie ?", choices: ["110 km/h", "130 km/h", "100 km/h", "90 km/h"], answer: 0, topic: "autoroute" , exp: "Sous la pluie, la vitesse maximale sur autoroute est abaissée à 110 km/h. Art. R413-2." },
+  { q: "Ceinture obligatoire à l'arrière ?", choices: ["Oui toujours", "Non", "Autoroute seulement", "Enfants seulement"], answer: 0, topic: "securite" , exp: "La ceinture est obligatoire à toutes les places, à l'arrière comme à l'avant. Art. R412-1." },
 ];
 
 export const PLAN_30_DAYS = [
