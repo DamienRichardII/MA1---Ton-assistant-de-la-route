@@ -891,10 +891,18 @@ async def stripe_webhook(request:Request):
 # Sans cela (ou sans Supabase service_role), les routes répondent 503 et rien n'est débité.
 _billing_svc = None
 
+def _env_clean(name: str, default: str = "") -> str:
+    """Valeur d'une variable d'environnement sans espaces/retours à la ligne ni guillemets parasites
+    (certains hébergeurs conservent les guillemets collés dans l'interface de variables)."""
+    v = (os.getenv(name) or default).strip()
+    for _ in range(3):
+        v = v.strip().strip('"').strip("'").strip("\\").strip()
+    return v
+
 def billing_enabled() -> bool:
-    return bool(HAS_BILLING and os.getenv("PAYMENT_PROVIDER", "").strip() == "sumup_api"
-                and os.getenv("SUMUP_API_KEY") and os.getenv("SUMUP_MERCHANT_CODE")
-                and os.getenv("SUMUP_WEBHOOK_SECRET") and get_supabase() is not None and _SUPABASE_KEY_IS_SERVICE)
+    return bool(HAS_BILLING and _env_clean("PAYMENT_PROVIDER") == "sumup_api"
+                and _env_clean("SUMUP_API_KEY") and _env_clean("SUMUP_MERCHANT_CODE")
+                and _env_clean("SUMUP_WEBHOOK_SECRET") and get_supabase() is not None and _SUPABASE_KEY_IS_SERVICE)
 
 def _set_plan_memory(uid: str, plan: str):
     get_usage(uid)["plan"] = plan
@@ -940,13 +948,13 @@ def get_billing():
     global _billing_svc
     if not billing_enabled(): return None
     if _billing_svc is None:
-        api_public = (os.getenv("API_PUBLIC_URL") or os.getenv("BACKEND_URL") or "").rstrip("/")
-        front = (os.getenv("FRONTEND_URL") or "https://ma1.fr").rstrip("/")
-        client = _SumUpClient(os.getenv("SUMUP_API_KEY", ""), os.getenv("SUMUP_MERCHANT_CODE", ""),
-                              base_url=os.getenv("SUMUP_API_BASE", "https://api.sumup.com"))
+        api_public = (_env_clean("API_PUBLIC_URL") or _env_clean("BACKEND_URL")).rstrip("/")
+        front = (_env_clean("FRONTEND_URL") or "https://ma1.fr").rstrip("/")
+        client = _SumUpClient(_env_clean("SUMUP_API_KEY"), _env_clean("SUMUP_MERCHANT_CODE"),
+                              base_url=_env_clean("SUMUP_API_BASE", "https://api.sumup.com"))
         _billing_svc = billing_mod.BillingService(
             client, _BillingSupabaseStore(get_supabase()), _ApiBillingHooks(),
-            webhook_url=f"{api_public}/payment/webhook/sumup?t={os.getenv('SUMUP_WEBHOOK_SECRET','')}",
+            webhook_url=f"{api_public}/payment/webhook/sumup?t={_env_clean('SUMUP_WEBHOOK_SECRET')}",
             redirect_url=f"{front}/abonnement/merci")
     return _billing_svc
 
@@ -1010,7 +1018,7 @@ async def sumup_webhook(request: Request, t: str = ""):
     le service relit le checkout via l'API SumUp avant toute activation."""
     import hmac
     svc = _need_billing()
-    if not hmac.compare_digest(t.encode(), os.getenv("SUMUP_WEBHOOK_SECRET", "").encode()):
+    if not hmac.compare_digest(t.strip().encode(), _env_clean("SUMUP_WEBHOOK_SECRET").encode()):
         raise HTTPException(401, "Non autorisé")
     try: body = await request.json()
     except Exception: raise HTTPException(400, "Corps invalide")
@@ -1025,9 +1033,11 @@ async def sumup_webhook(request: Request, t: str = ""):
 
 def require_cron_or_admin(authorization: Optional[str] = Header(None), x_cron_secret: Optional[str] = Header(None), token: Optional[str] = None) -> str:
     import hmac
-    secret = os.getenv("CRON_SECRET", "")
-    if secret and x_cron_secret and hmac.compare_digest(x_cron_secret.encode(), secret.encode()):
+    secret = _env_clean("CRON_SECRET")
+    if secret and x_cron_secret and hmac.compare_digest(x_cron_secret.strip().encode(), secret.encode()):
         return "cron"
+    if not secret:
+        print("[billing] CRON_SECRET absent ou vide côté serveur : seul un compte admin peut appeler /cron/billing", flush=True)
     return require_admin(authorization, token)
 
 @app.post("/cron/billing")

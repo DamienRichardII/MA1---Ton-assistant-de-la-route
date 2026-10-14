@@ -434,3 +434,22 @@ async def test_reconcile_expires_abandoned_checkouts(env):
     assert (await svc.reconcile_pending())["expired"] == 1
     sub = store.list_user("u1")[0]
     assert sub["status"] == "failed" and sub["last_error"].startswith("expired_unpaid") and not hooks.plans
+
+
+def test_secrets_tolerate_quotes_and_whitespace_from_hosting_ui(monkeypatch):
+    """Railway garde parfois les guillemets/espaces collés dans une variable : le secret doit rester valide."""
+    from fastapi.testclient import TestClient
+    import api
+    monkeypatch.setenv("CRON_SECRET", ' "cr0n-secret"\n')
+    assert api._env_clean("CRON_SECRET") == "cr0n-secret"
+    monkeypatch.setattr(api, "get_billing", lambda: type("S", (), {
+        "reconcile_pending": staticmethod(lambda: _async({"checked": 0})),
+        "run_renewals": staticmethod(lambda: _async({"checked": 0}))})())
+    c = TestClient(api.app)
+    assert c.post("/cron/billing", headers={"X-Cron-Secret": "cr0n-secret "}).status_code == 200
+    assert c.post("/cron/billing", headers={"X-Cron-Secret": "autre"}).status_code in (401, 403)
+    monkeypatch.setenv("CRON_SECRET", "")                                          # non défini : jamais accepté
+    assert c.post("/cron/billing", headers={"X-Cron-Secret": ""}).status_code in (401, 403)
+
+
+async def _async(v): return v
