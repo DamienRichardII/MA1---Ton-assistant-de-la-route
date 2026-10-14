@@ -88,6 +88,19 @@ def _checkout_summary(co: dict) -> str:
         return str(co.get("status"))
 
 
+_CHECKOUT_DIAG_KEYS = ("status", "amount", "currency", "merchant_code", "purpose", "date", "valid_until",
+                       "checkout_reference", "failure_reason", "decline_reason", "message", "error", "transactions")
+
+
+def _checkout_state(co: dict) -> str:
+    """État d'un checkout pour diagnostic. Liste blanche de champs : jamais return_url/redirect_url
+    (le callback contient un secret) ni l'adresse de la page de paiement."""
+    import json
+    keep = {k: co[k] for k in _CHECKOUT_DIAG_KEYS if k in co}
+    keep["_champs_recus"] = sorted(co.keys())
+    return json.dumps(keep, ensure_ascii=False, default=str)[:480]
+
+
 def _same_amount(sumup_amount: Any, cents: int) -> bool:
     try:
         return Decimal(str(sumup_amount)).quantize(Decimal("0.01")) == (Decimal(cents) / 100).quantize(Decimal("0.01"))
@@ -172,6 +185,10 @@ class BillingService:
                 detail = _checkout_summary(co)
                 log.warning("checkout %s en attente avec tentatives : %s", checkout_id, detail)
                 self.store.update_subscription(sub["id"], {"last_error": f"pending_with_attempts: {detail}"[:500]})
+            else:
+                detail = _checkout_state(co)
+                log.warning("checkout %s en attente, aucune transaction visible : %s", checkout_id, detail)
+                self.store.update_subscription(sub["id"], {"last_error": f"pending_no_transactions: {detail}"[:500]})
             return {"result": "pending"}
         if status != "PAID":
             detail = _checkout_summary(co)

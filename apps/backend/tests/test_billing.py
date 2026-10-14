@@ -152,7 +152,11 @@ async def test_webhook_unknown_checkout_ignored_and_pending_waits(env):
     await svc.start_subscription("u1", "a@b.fr", "A", "annual")
     cid = next(iter(sumup.checkouts))
     assert (await svc.handle_checkout_event(cid))["result"] == "pending"      # pas encore payé : on n'active pas
-    assert store.list_user("u1")[0]["status"] == "pending"
+    sub = store.list_user("u1")[0]
+    assert sub["status"] == "pending"
+    # l'état du checkout est conservé pour le diagnostic, sans fuite du secret du callback ni de l'URL de paiement
+    assert sub["last_error"].startswith("pending_no_transactions") and "PENDING" in sub["last_error"]
+    assert "https://" not in sub["last_error"] and "?t=" not in sub["last_error"]      # aucune URL (le callback contient un secret)
 
 
 @pytest.mark.asyncio
