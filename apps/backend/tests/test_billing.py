@@ -478,6 +478,9 @@ async def test_diagnostic_checkouts_plain_vs_recurring(env):
     co = sumup.checkouts[plain["checkout_id"]]
     assert "purpose" not in co and "customer_id" not in co and co["amount"] == 1.0   # paiement ordinaire, sans option
     assert plain["url"].startswith("https://checkout.sumup.com/") and not store.subs  # aucun abonnement créé
+    cust = await svc.diagnostic_checkout("customer", 100)
+    co = sumup.checkouts[cust["checkout_id"]]
+    assert co["customer_id"] == "ma1-diag" and "purpose" not in co                 # identifiant client sans enregistrement de carte
     rec = await svc.diagnostic_checkout("recurring", 100)
     co = sumup.checkouts[rec["checkout_id"]]
     assert co["purpose"] == "SETUP_RECURRING_PAYMENT" and co["customer_id"] == "ma1-diag"

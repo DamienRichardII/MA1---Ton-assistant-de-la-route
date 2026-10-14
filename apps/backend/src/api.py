@@ -1045,7 +1045,7 @@ def require_cron_or_admin(authorization: Optional[str] = Header(None), x_cron_se
 
 @app.post("/payment/diagnostic/checkout")
 async def payment_diag_create(variant: str = "plain", amount_cents: int = 100, _who: str = Depends(require_cron_or_admin)):
-    """Diagnostic : crée un paiement de test (1–5 €). variant=plain (ordinaire) ou recurring (avec enregistrement de carte)."""
+    """Diagnostic : crée un paiement de test (1–5 €). variant=plain (ordinaire), customer (identifiant client seul) ou recurring (enregistrement de carte)."""
     svc = _need_billing()
     try: return await svc.diagnostic_checkout(variant, amount_cents)
     except billing_mod.BillingError as e: raise _billing_http(e)

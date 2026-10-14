@@ -265,17 +265,17 @@ class BillingService:
     # ───────────────────────── Diagnostic (protégé) ─────────────────────────
     async def diagnostic_checkout(self, variant: str, amount_cents: int = 100) -> dict:
         """Crée un petit paiement de test sur le compte réel (1 à 5 €, sans abonnement associé, sans callback) pour
-        comparer un paiement ordinaire ('plain') à un paiement avec enregistrement de carte ('recurring')."""
-        if variant not in ("plain", "recurring"):
-            raise BillingError("invalid_variant", "variant doit valoir 'plain' ou 'recurring'.", 400)
+        comparer un paiement ordinaire ('plain'), avec identifiant client seul ('customer') et avec enregistrement de carte ('recurring')."""
+        if variant not in ("plain", "customer", "recurring"):
+            raise BillingError("invalid_variant", "variant doit valoir 'plain', 'customer' ou 'recurring'.", 400)
         cents = max(100, min(int(amount_cents), 500))
         ref = f"ma1-diag-{variant}-{int(datetime.now(timezone.utc).timestamp())}-{uuid.uuid4().hex[:6]}"
         try:
-            if variant == "recurring":
+            if variant in ("customer", "recurring"):
                 await self.client.ensure_customer("ma1-diag", "", "diagnostic")
             co = await self.client.create_checkout(
                 reference=ref, amount_cents=cents, currency=CURRENCY, description=f"MA1 test diagnostic ({variant})",
-                customer_id="ma1-diag" if variant == "recurring" else None,
+                customer_id="ma1-diag" if variant in ("customer", "recurring") else None,
                 purpose="SETUP_RECURRING_PAYMENT" if variant == "recurring" else None, hosted=True)
         except SumUpError as e:
             raise BillingError("provider_error", f"SumUp a refusé la création : HTTP {e.status} {str(e.body)[:300]}", 502)
