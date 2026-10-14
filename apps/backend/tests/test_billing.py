@@ -374,3 +374,19 @@ def test_startup_hydration_loads_all_accounts(monkeypatch):
     monkeypatch.setattr(api, "get_supabase", lambda: FakeSupabaseUsers(rows))
     import asyncio; asyncio.run(api._hydrate_users_on_startup())
     assert all(f"h{i}@t.fr" in api._users for i in range(3)) and "" not in api._users
+
+
+@pytest.mark.asyncio
+async def test_every_plan_checkout_title_carries_the_MA1_brand(env, monkeypatch):
+    """Le client doit voir « MA1 … » sur chaque paiement (page SumUp, reçu), quel que soit le plan."""
+    svc, sumup, store, _ = env
+    monkeypatch.setenv("SUMUP_TRIAL_DAYS_PREMIUM", "7")
+    for i, plan in enumerate(B.PLANS):
+        uid = f"brand{i}"
+        await subscribe_and_pay(svc, sumup, uid, plan)
+        make_due(store, uid)
+    await svc.run_renewals()
+    descriptions = [c["description"] for c in sumup.checkouts.values()]
+    assert len(descriptions) == 2 * len(B.PLANS)                       # souscription + renouvellement par plan
+    assert all(d.startswith("MA1 ") for d in descriptions), descriptions
+    assert {"MA1 Premium — essai 7 jours", "MA1 Premium Annuel", "MA1 Auto-École"} <= set(descriptions)
