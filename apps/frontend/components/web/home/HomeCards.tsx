@@ -8,13 +8,12 @@ const SPACES: Array<{ icon: LucideIcon; title: string; items: string[]; href: st
   { icon: Sparkles, title: 'Intelligence Artificielle', items: ['Réponses instantanées', 'Explications claires', 'Adapté à ton niveau'], href: '/chat' },
 ];
 
-// Tarifs : source canonique CLAUDE.md §5 / PLAN_LIMITS (10 €/mois, 79 €/an, 200 €/mois). Destination : inscription (paiement Stripe non branché).
-const SALES = 'mailto:contact@ma1.app?subject=Demande%20Auto-%C3%A9cole%20MA1';
+// Tarifs : source canonique CLAUDE.md §5 / PLAN_LIMITS (10 €/mois, 79 €/an, 200 €/mois). Destination : /abonnement (confirmation + paiement SumUp).
 const PLANS = [
   { name: 'Gratuit', price: '0€', per: '', items: ['10 questions / jour', 'Accès de base', 'QCM adaptatifs'], cta: 'Commencer', href: '/connexion?mode=register' },
-  { name: 'Premium', price: '10€', per: '/mois', items: ['Accès illimité', 'Révision personnalisée', 'Statistiques avancées'], cta: 'Choisir', href: '/connexion?mode=register' },
-  { name: 'Premium Annuel', price: '79€', per: '/an', badge: '−34 %', items: ['Toutes les fonctions', 'Économisez 41€', 'Accès garanti 12 mois'], cta: 'Choisir', href: '/connexion?mode=register' },
-  { name: 'Auto-école', price: '200€', per: '/mois', items: ['Suivi de 30 élèves', 'Dashboard moniteur', 'Export PDF élèves'], cta: 'Nous contacter', href: SALES },
+  { name: 'Premium', price: '10€', per: '/mois', items: ['Accès illimité', 'Révision personnalisée', 'Statistiques avancées'], cta: 'Choisir', href: '/abonnement?plan=premium' },
+  { name: 'Premium Annuel', price: '79€', per: '/an', badge: '−34 %', items: ['Toutes les fonctions', 'Économisez 41€', 'Accès garanti 12 mois'], cta: 'Choisir', href: '/abonnement?plan=annual' },
+  { name: 'Auto-école', price: '200€', per: '/mois', items: ['Suivi de 30 élèves', 'Dashboard moniteur', 'Export PDF élèves'], cta: 'Choisir', href: '/abonnement?plan=autoecole' },
 ];
 
 const card = 'rounded-[14px] border border-[var(--h-card-line)] bg-[var(--h-card)] shadow-[var(--h-card-shadow)] backdrop-blur-md';

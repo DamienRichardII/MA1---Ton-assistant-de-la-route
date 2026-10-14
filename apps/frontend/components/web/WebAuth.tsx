@@ -22,7 +22,10 @@ function AuthForm() {
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => { if (isLoggedIn) router.replace('/chat'); }, [isLoggedIn, router]);
+  // Redirection après connexion : chemin interne uniquement (anti open-redirect).
+  const rawNext = params.get('next') || '';
+  const after = rawNext.startsWith('/') && !rawNext.startsWith('//') && !rawNext.includes('\\') ? rawNext : '/chat';
+  useEffect(() => { if (isLoggedIn) router.replace(after); }, [isLoggedIn, router, after]);
 
   const yr = new Date().getFullYear();
   const years = Array.from({ length: 70 }, (_, i) => yr - 14 - i);
@@ -43,7 +46,7 @@ function AuthForm() {
         setUser({ userId: d.user_id, token: d.token, name: d.name || email.split('@')[0], plan: d.plan });
         localStorage.setItem('ma1_token', d.token);
       }
-      router.push('/chat');
+      router.push(after);
     } catch (e: any) { setErr(e.message || 'Erreur'); }
     setBusy(false);
   };

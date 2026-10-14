@@ -1,0 +1,74 @@
+import { test, expect, type Page } from "@playwright/test";
+
+// Parcours d'abonnement SumUp — backend simulé (aucun paiement réel).
+const API = "http://localhost:8000";
+const json = (body: unknown, status = 200) => ({ status, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify(body) });
+
+async function mockApi(page: Page, opts: { enabled: boolean; sub?: unknown }) {
+  await page.route(`${API}/**`, async (route) => {
+    const u = new URL(route.request().url());
+    if (route.request().method() === "OPTIONS")
+      return route.fulfill({ status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*" } });
+    if (u.pathname === "/payment/config") return route.fulfill(json({ enabled: opts.enabled, plans: { premium: { trial_days: 7 } } }));
+    if (u.pathname === "/payment/subscription") return route.fulfill(json({ subscription: opts.sub ?? null }));
+    if (u.pathname === "/payment/subscribe")
+      return route.fulfill(json({ checkout_url: "https://checkout.sumup.test/pay/co_1", plan: "annual", trial_days: 0 }));
+    if (u.pathname === "/payment/cancel")
+      return route.fulfill(json({ subscription: { ...(opts.sub as object), cancel_at_period_end: true } }));
+    return route.fulfill(json({}));
+  });
+}
+
+async function logIn(page: Page) {
+  await page.addInitScript(() => {
+    localStorage.setItem("ma1_ob", "1"); localStorage.setItem("ma1_rgpd", "accept"); localStorage.setItem("ma1_token", "tok");
+    localStorage.setItem("ma1-store-v8", JSON.stringify({ state: { userId: "u_1", token: "tok", userName: "Ana", plan: "free", isLoggedIn: true }, version: 0 }));
+  });
+}
+
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => { localStorage.setItem("ma1_ob", "1"); localStorage.setItem("ma1_rgpd", "accept"); });
+});
+
+test("paiement non configuré : boutons désactivés, aucune souscription possible", async ({ page }) => {
+  await mockApi(page, { enabled: false });
+  await page.goto("/abonnement");
+  await expect(page.getByText("Le paiement en ligne ouvre bientôt")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Bientôt disponible" }).first()).toBeDisabled();
+});
+
+test("visiteur non connecté : renvoyé vers l'inscription avec retour sur le plan choisi", async ({ page }) => {
+  await mockApi(page, { enabled: true });
+  await page.goto("/abonnement");
+  await page.getByRole("button", { name: "Choisir" }).first().click();
+  await expect(page).toHaveURL(/\/connexion\?mode=register&next=%2Fabonnement%3Fplan%3Dpremium/);
+});
+
+test("utilisateur connecté : confirmation obligatoire puis redirection vers le paiement SumUp", async ({ page }) => {
+  await logIn(page);
+  await mockApi(page, { enabled: true });
+  await page.route("https://checkout.sumup.test/**", (r) => r.fulfill({ status: 200, contentType: "text/html", body: "<h1>SumUp checkout</h1>" }));
+  await page.goto("/abonnement");
+  await page.getByRole("tab", { name: /Annuel/ }).click();
+  await page.getByRole("button", { name: "Choisir" }).first().click();
+  const pay = page.getByRole("button", { name: "Commander avec obligation de paiement" });
+  await expect(page.getByRole("dialog")).toContainText("79 € / an");
+  await expect(pay).toBeDisabled();                                   // CGV non acceptées
+  await page.getByRole("checkbox").check();
+  await pay.click();
+  await expect(page).toHaveURL("https://checkout.sumup.test/pay/co_1");
+});
+
+test("abonné : état de l'abonnement et résiliation en ligne en deux étapes", async ({ page }) => {
+  await logIn(page);
+  await mockApi(page, { enabled: true, sub: { plan: "annual", plan_name: "Premium Annuel", status: "active", amount_cents: 7900, interval_months: 12, trial_end: null,
+    current_period_end: "2027-10-14T00:00:00Z", next_charge_at: "2027-10-14T00:00:00Z", cancel_at_period_end: false, card_last4: "4242", card_brand: "VISA" } });
+  await page.goto("/abonnement");
+  const panel = page.getByLabel("Votre abonnement");
+  await expect(panel).toContainText("Premium Annuel");
+  await expect(panel).toContainText("•••• 4242");
+  await expect(page.getByRole("button", { name: "Abonnement actif" }).first()).toBeDisabled();   // pas de double abonnement
+  await page.getByRole("button", { name: "Résilier mon abonnement" }).click();
+  await page.getByRole("button", { name: "Oui, résilier" }).click();
+  await expect(panel).toContainText("Résiliation enregistrée");
+});

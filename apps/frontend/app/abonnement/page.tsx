@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { PageShell } from '@/components/web/ui';
 import { WebPricing } from '@/components/web/WebPricing';
@@ -8,4 +9,6 @@ export const metadata: Metadata = {
   alternates: { canonical: 'https://ma1.app/abonnement' },
 };
 
-export default function AbonnementPage() { return <PageShell><WebPricing /></PageShell>; }
+export default function AbonnementPage() {
+  return <PageShell><Suspense fallback={null}><WebPricing /></Suspense></PageShell>;
+}

@@ -262,3 +262,86 @@ def admin_new_support_message(user_name: str, user_email: str, subject: str, mes
             message_preview[:500],
         ], "Voir dans l'admin", f"{FRONTEND_URL}/admin/messages"),
     }
+
+
+# ── Abonnements (SumUp) ──────────────────────────────────────────────────
+
+def _fmt_eur(cents: int) -> str:
+    return f"{cents / 100:.2f}".replace(".", ",").replace(",00", "") + " €"
+
+
+def _fmt_date(iso: str | None) -> str:
+    if not iso:
+        return ""
+    try:
+        return datetime.fromisoformat(iso.replace("Z", "+00:00")).strftime("%d/%m/%Y")
+    except ValueError:
+        return ""
+
+
+def subscription_started(name: str, plan_name: str, amount_cents: int, interval_months: int,
+                         trial_end: str | None, next_charge_at: str | None) -> dict:
+    per = "par an" if interval_months == 12 else "par mois"
+    if trial_end:
+        detail = (f"<p>Votre essai gratuit est actif jusqu'au <strong>{_fmt_date(trial_end)}</strong>. "
+                  f"Sans résiliation avant cette date, <strong>{_fmt_eur(amount_cents)}</strong> {per} seront prélevés.</p>")
+        lines = [f"Essai gratuit jusqu'au {_fmt_date(trial_end)}, puis {_fmt_eur(amount_cents)} {per}."]
+    else:
+        detail = (f"<p>Paiement de <strong>{_fmt_eur(amount_cents)}</strong> reçu. "
+                  f"Prochain prélèvement : <strong>{_fmt_date(next_charge_at)}</strong> ({_fmt_eur(amount_cents)} {per}).</p>")
+        lines = [f"Paiement de {_fmt_eur(amount_cents)} reçu. Prochain prélèvement : {_fmt_date(next_charge_at)}."]
+    body = (f"<p>Bonjour {_escape(name) or ''},</p><p>Votre abonnement <strong>{_escape(plan_name)}</strong> est actif. Merci !</p>"
+            f"{detail}<p style='font-size:13px;color:rgba(208,234,242,0.55)'>Résiliable à tout moment depuis votre espace, "
+            f"sans frais : l'accès reste actif jusqu'à la fin de la période payée.</p>")
+    return {
+        "subject": f"Votre abonnement MA1 {plan_name} est actif",
+        "html": _layout("Abonnement activé", body, "Gérer mon abonnement", f"{FRONTEND_URL}/abonnement"),
+        "text": _text_fallback("Abonnement activé", [f"Abonnement {plan_name} actif.", *lines,
+                               "Résiliable à tout moment depuis votre espace."], "Gérer mon abonnement", f"{FRONTEND_URL}/abonnement"),
+    }
+
+
+def subscription_renewed(name: str, plan_name: str, amount_cents: int, next_charge_at: str | None) -> dict:
+    body = (f"<p>Bonjour {_escape(name) or ''},</p><p>Votre abonnement <strong>{_escape(plan_name)}</strong> a été renouvelé : "
+            f"<strong>{_fmt_eur(amount_cents)}</strong> prélevés. Prochain prélèvement le <strong>{_fmt_date(next_charge_at)}</strong>.</p>")
+    return {
+        "subject": f"MA1 {plan_name} : paiement de {_fmt_eur(amount_cents)} reçu",
+        "html": _layout("Paiement reçu", body, "Gérer mon abonnement", f"{FRONTEND_URL}/abonnement"),
+        "text": _text_fallback("Paiement reçu", [f"Abonnement {plan_name} renouvelé : {_fmt_eur(amount_cents)}.",
+                               f"Prochain prélèvement : {_fmt_date(next_charge_at)}."], "Gérer mon abonnement", f"{FRONTEND_URL}/abonnement"),
+    }
+
+
+def payment_failed(name: str, plan_name: str, retry_at: str | None) -> dict:
+    body = (f"<p>Bonjour {_escape(name) or ''},</p><p>Le prélèvement de votre abonnement <strong>{_escape(plan_name)}</strong> "
+            f"a échoué. Nous réessaierons automatiquement le <strong>{_fmt_date(retry_at)}</strong>.</p>"
+            f"<p>Pour éviter toute interruption, vérifiez votre moyen de paiement ou souscrivez à nouveau depuis votre espace.</p>")
+    return {
+        "subject": "MA1 : le paiement de votre abonnement a échoué",
+        "html": _layout("Paiement échoué", body, "Mettre à jour mon paiement", f"{FRONTEND_URL}/abonnement"),
+        "text": _text_fallback("Paiement échoué", [f"Le prélèvement de votre abonnement {plan_name} a échoué.",
+                               f"Nouvelle tentative le {_fmt_date(retry_at)}."], "Mettre à jour mon paiement", f"{FRONTEND_URL}/abonnement"),
+    }
+
+
+def subscription_cancel_scheduled(name: str, plan_name: str, access_until: str | None) -> dict:
+    body = (f"<p>Bonjour {_escape(name) or ''},</p><p>Votre résiliation est enregistrée. Aucun nouveau prélèvement n'aura lieu. "
+            f"Vous gardez l'accès <strong>{_escape(plan_name)}</strong> jusqu'au <strong>{_fmt_date(access_until)}</strong>.</p>")
+    return {
+        "subject": "MA1 : votre résiliation est enregistrée",
+        "html": _layout("Résiliation enregistrée", body, "Réactiver mon abonnement", f"{FRONTEND_URL}/abonnement"),
+        "text": _text_fallback("Résiliation enregistrée", [f"Accès {plan_name} conservé jusqu'au {_fmt_date(access_until)}.",
+                               "Aucun nouveau prélèvement."], "Réactiver mon abonnement", f"{FRONTEND_URL}/abonnement"),
+    }
+
+
+def subscription_ended(name: str, plan_name: str, reason: str) -> dict:
+    why = ("suite à plusieurs échecs de paiement" if reason == "payment_failed" else "comme demandé")
+    body = (f"<p>Bonjour {_escape(name) or ''},</p><p>Votre abonnement <strong>{_escape(plan_name)}</strong> a pris fin {why}. "
+            f"Votre compte repasse au plan gratuit ; vos données et votre progression sont conservées.</p>")
+    return {
+        "subject": f"Votre abonnement MA1 {plan_name} a pris fin",
+        "html": _layout("Abonnement terminé", body, "Se réabonner", f"{FRONTEND_URL}/abonnement"),
+        "text": _text_fallback("Abonnement terminé", [f"Votre abonnement {plan_name} a pris fin {why}.",
+                               "Compte repassé au plan gratuit."], "Se réabonner", f"{FRONTEND_URL}/abonnement"),
+    }

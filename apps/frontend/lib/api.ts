@@ -135,6 +135,15 @@ class MA1Api {
     return this.request(`/stripe/checkout?user_id=${userId}&plan=${plan}`, { method: 'POST' });
   }
 
+  // Abonnements SumUp (carte enregistrée) — voir docs/SPRINT_PAIEMENT_SUMUP.md
+  async paymentConfig() { return this.request('/payment/config'); }
+  async subscribe(plan: string) {
+    return this.request('/payment/subscribe', { method: 'POST', body: JSON.stringify({ plan }) });
+  }
+  async getSubscription() { return this.request('/payment/subscription'); }
+  async cancelSubscription() { return this.request('/payment/cancel', { method: 'POST' }); }
+  async resumeSubscription() { return this.request('/payment/resume', { method: 'POST' }); }
+
   // RGPD
   async exportData(userId: string) {
     const res = await fetch(`${this.baseUrl}/rgpd/export/${userId}`);

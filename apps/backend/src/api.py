@@ -151,6 +151,16 @@ def require_admin(authorization: Optional[str] = Header(None), token: Optional[s
             return caller_uid
     raise HTTPException(403, "Accès admin requis.")
 
+# [Paiement SumUp] Abonnements récurrents (carte enregistrée). Voir docs/SPRINT_PAIEMENT_SUMUP.md.
+try:
+    import billing as billing_mod
+    from billing_store import SupabaseStore as _BillingSupabaseStore
+    from sumup_client import SumUpClient as _SumUpClient
+    HAS_BILLING = True
+except ImportError as _be:
+    print(f"[WARN] Module billing non chargé: {_be}")
+    HAS_BILLING = False
+
 # Rate limiting
 try:
     from slowapi import Limiter
@@ -559,6 +569,7 @@ async def auth_login(req:AuthLoginRequest):
     user=_users.get(email)
     if not user or not check_pw(req.password, user["pw_hash"]): raise HTTPException(401,"Email ou mot de passe incorrect")
     token=mk_token(user["user_id"]); user["token"]=token
+    await _refresh_plan(user["user_id"])
     if HAS_ADMIN_STACK:
         try: xp_svc.award_xp(get_supabase(), user_id=user["user_id"], type_="daily_login")
         except Exception as e: print(f"[XP] daily_login warn: {e}")
@@ -586,6 +597,7 @@ async def auth_login(req:AuthLoginRequest):
 async def auth_me(token:str):
     uid = verify_token(token)
     if uid:
+        await _refresh_plan(uid)
         for u in _users.values():
             if u["user_id"] == uid:
                 return {"user_id":u["user_id"],"email":u["email"],"name":u.get("name",""),"plan":u.get("plan","free"),"profile":get_profile(u["user_id"])}
@@ -825,6 +837,155 @@ async def stripe_webhook(request:Request):
             await sb_track({"user_id":uid,"event":"subscription","data":{"plan":plan},"ts":time.time()})
     return {"status":"ok"}
 
+
+# ═══ PAIEMENT SUMUP — ABONNEMENTS RÉCURRENTS ═══
+# Activé par PAYMENT_PROVIDER=sumup_api + SUMUP_API_KEY + SUMUP_MERCHANT_CODE + SUMUP_WEBHOOK_SECRET.
+# Sans cela (ou sans Supabase service_role), les routes répondent 503 et rien n'est débité.
+_billing_svc = None
+
+def billing_enabled() -> bool:
+    return bool(HAS_BILLING and os.getenv("PAYMENT_PROVIDER", "").strip() == "sumup_api"
+                and os.getenv("SUMUP_API_KEY") and os.getenv("SUMUP_MERCHANT_CODE")
+                and os.getenv("SUMUP_WEBHOOK_SECRET") and get_supabase() is not None and _SUPABASE_KEY_IS_SERVICE)
+
+def _set_plan_memory(uid: str, plan: str):
+    get_usage(uid)["plan"] = plan
+    for u in _users.values():
+        if u["user_id"] == uid:
+            u["plan"] = plan
+            break
+
+class _ApiBillingHooks(billing_mod.Hooks if HAS_BILLING else object):
+    async def apply_plan(self, user_id: str, plan: str):
+        _set_plan_memory(user_id, plan)
+        sb = get_supabase()
+        if sb:
+            try: sb.table("users").update({"plan": plan}).eq("user_id", user_id).execute()
+            except Exception as e: print(f"[billing] users.plan update warn: {e}", flush=True)
+        await sb_track({"user_id": user_id, "event": "plan_change", "data": {"plan": plan}, "ts": time.time()})
+
+    async def notify(self, kind: str, user_id: str, sub: dict, **extra):
+        if not HAS_ADMIN_STACK: return
+        ident = _user_identity(user_id)
+        if not ident.get("email"): return
+        import email_templates as T
+        name, plan_name = ident.get("name", ""), billing_mod.PLANS.get(sub["plan"], {}).get("name", sub["plan"])
+        if kind == "started":
+            tpl = T.subscription_started(name, plan_name, sub["amount_cents"], sub["interval_months"], sub.get("trial_end"), sub.get("next_charge_at"))
+        elif kind == "renewed":
+            tpl = T.subscription_renewed(name, plan_name, sub["amount_cents"], sub.get("next_charge_at"))
+        elif kind == "payment_failed":
+            ra = extra.get("retry_at"); tpl = T.payment_failed(name, plan_name, ra.isoformat() if ra else None)
+        elif kind == "cancel_scheduled":
+            tpl = T.subscription_cancel_scheduled(name, plan_name, sub.get("current_period_end") or sub.get("next_charge_at"))
+        elif kind == "ended":
+            tpl = T.subscription_ended(name, plan_name, extra.get("reason", ""))
+        else: return
+        try:
+            send_email(template=f"subscription_{kind}", to_email=ident["email"], subject=tpl["subject"], html=tpl["html"],
+                       text=tpl["text"], user_id=user_id, supabase=get_supabase(), force=True)
+        except Exception as e:
+            print(f"[billing] email {kind} failed: {e}", flush=True)
+
+def get_billing():
+    """Service d'abonnement, ou None si le paiement n'est pas activé/configuré."""
+    global _billing_svc
+    if not billing_enabled(): return None
+    if _billing_svc is None:
+        api_public = (os.getenv("API_PUBLIC_URL") or os.getenv("BACKEND_URL") or "").rstrip("/")
+        front = (os.getenv("FRONTEND_URL") or "https://ma1.fr").rstrip("/")
+        client = _SumUpClient(os.getenv("SUMUP_API_KEY", ""), os.getenv("SUMUP_MERCHANT_CODE", ""),
+                              base_url=os.getenv("SUMUP_API_BASE", "https://api.sumup.com"))
+        _billing_svc = billing_mod.BillingService(
+            client, _BillingSupabaseStore(get_supabase()), _ApiBillingHooks(),
+            webhook_url=f"{api_public}/payment/webhook/sumup?t={os.getenv('SUMUP_WEBHOOK_SECRET','')}",
+            redirect_url=f"{front}/abonnement/merci")
+    return _billing_svc
+
+async def _refresh_plan(uid: str):
+    """Réaligne le plan en mémoire sur les abonnements (persistés) — le plan survit aux redémarrages."""
+    svc = get_billing()
+    if not svc: return
+    try:
+        eff = svc.effective_plan(uid)
+        if eff is not None: _set_plan_memory(uid, eff)
+    except Exception as e:
+        print(f"[billing] refresh plan warn: {e}", flush=True)
+
+def _need_billing():
+    svc = get_billing()
+    if not svc: raise HTTPException(503, "Paiement indisponible pour le moment.")
+    return svc
+
+def _billing_http(e):
+    return HTTPException(e.http_status, e.message)
+
+class SubscribeRequest(BaseModel):
+    plan: str
+
+@app.get("/payment/config")
+def payment_config():
+    plans = {k: {"name": v["name"], "amount_cents": v["amount_cents"], "interval_months": v["interval_months"],
+                 "trial_days": billing_mod.trial_days_for(k)} for k, v in billing_mod.PLANS.items()} if HAS_BILLING else {}
+    return {"enabled": billing_enabled(), "plans": plans}
+
+@app.post("/payment/subscribe")
+async def payment_subscribe(req: SubscribeRequest, _uid: str = Depends(require_auth)):
+    svc = _need_billing()
+    ident = _user_identity(_uid)
+    try:
+        return await svc.start_subscription(_uid, ident.get("email", ""), ident.get("name", ""), req.plan)
+    except billing_mod.BillingError as e:
+        raise _billing_http(e)
+
+@app.get("/payment/subscription")
+async def payment_subscription(_uid: str = Depends(require_auth)):
+    svc = _need_billing()
+    await _refresh_plan(_uid)
+    return {"subscription": svc.get_status(_uid)}
+
+@app.post("/payment/cancel")
+async def payment_cancel(_uid: str = Depends(require_auth)):
+    svc = _need_billing()
+    try: return {"subscription": await svc.cancel(_uid)}
+    except billing_mod.BillingError as e: raise _billing_http(e)
+
+@app.post("/payment/resume")
+async def payment_resume(_uid: str = Depends(require_auth)):
+    svc = _need_billing()
+    try: return {"subscription": await svc.resume(_uid)}
+    except billing_mod.BillingError as e: raise _billing_http(e)
+
+@app.post("/payment/webhook/sumup")
+async def sumup_webhook(request: Request, t: str = ""):
+    """Callback SumUp (return_url). Authentifié par secret dans l'URL ; le contenu n'est jamais cru :
+    le service relit le checkout via l'API SumUp avant toute activation."""
+    import hmac
+    svc = _need_billing()
+    if not hmac.compare_digest(t.encode(), os.getenv("SUMUP_WEBHOOK_SECRET", "").encode()):
+        raise HTTPException(401, "Non autorisé")
+    try: body = await request.json()
+    except Exception: raise HTTPException(400, "Corps invalide")
+    cid = body.get("id") or body.get("checkout_id") or (body.get("payload") or {}).get("checkout_id")
+    if not isinstance(cid, str) or not cid:
+        raise HTTPException(400, "Identifiant de checkout manquant")
+    try: res = await svc.handle_checkout_event(cid)
+    except billing_mod.BillingError as e: raise _billing_http(e)   # 502 → SumUp réessaiera
+    return {"ok": True, **res}
+
+def require_cron_or_admin(authorization: Optional[str] = Header(None), x_cron_secret: Optional[str] = Header(None), token: Optional[str] = None) -> str:
+    import hmac
+    secret = os.getenv("CRON_SECRET", "")
+    if secret and x_cron_secret and hmac.compare_digest(x_cron_secret.encode(), secret.encode()):
+        return "cron"
+    return require_admin(authorization, token)
+
+@app.post("/cron/billing")
+async def cron_billing(_who: str = Depends(require_cron_or_admin)):
+    """Prélève les renouvellements échus. À appeler 1×/jour (idéalement toutes les heures) : header X-Cron-Secret."""
+    svc = _need_billing()
+    return {"results": await svc.run_renewals()}
+
 # PRICING
 @app.post("/plan/upgrade")
 def upgrade_plan(req:PlanRequest, _admin: str = Depends(require_admin)):
@@ -941,6 +1102,11 @@ async def rgpd_export(user_id: str, _uid: str = Depends(require_auth_user_match)
 @app.delete("/rgpd/delete/{user_id}")
 async def rgpd_delete(user_id: str, _uid: str = Depends(require_auth_user_match)):
     """Delete all user data (RGPD Art. 17 - Right to erasure)."""
+    # Paiement : jeton de carte désactivé + abonnements supprimés (best-effort, avant la suppression du compte)
+    _bsvc = get_billing()
+    if _bsvc:
+        try: await _bsvc.delete_user_data(user_id)
+        except Exception as e: print(f"[billing] rgpd delete warn: {e}", flush=True)
     # Remove profile
     _profiles.pop(user_id, None)
     # Remove usage
