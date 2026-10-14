@@ -20,7 +20,8 @@ class MA1Api {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: 'Erreur serveur' }));
-      throw new Error(err.detail || `HTTP ${res.status}`);
+      // `status` permet aux appelants de distinguer une session expirée (401) d'une panne réseau/serveur.
+      throw Object.assign(new Error(err.detail || `HTTP ${res.status}`), { status: res.status });
     }
     return res.json();
   }

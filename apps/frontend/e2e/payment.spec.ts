@@ -4,11 +4,13 @@ import { test, expect, type Page } from "@playwright/test";
 const API = "http://localhost:8000";
 const json = (body: unknown, status = 200) => ({ status, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify(body) });
 
-async function mockApi(page: Page, opts: { enabled: boolean; sub?: unknown }) {
+async function mockApi(page: Page, opts: { enabled: boolean; sub?: unknown; me401?: boolean; subscribe401?: boolean }) {
   await page.route(`${API}/**`, async (route) => {
     const u = new URL(route.request().url());
     if (route.request().method() === "OPTIONS")
       return route.fulfill({ status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*" } });
+    if (u.pathname === "/auth/me") return route.fulfill(opts.me401 ? json({ detail: "Token invalide" }, 401) : json({ user_id: "u_1", email: "a@b.fr", name: "Ana", plan: "free" }));
+    if (u.pathname === "/payment/subscribe" && opts.subscribe401) return route.fulfill(json({ detail: "Token invalide ou expiré" }, 401));
     if (u.pathname === "/payment/config") return route.fulfill(json({ enabled: opts.enabled, plans: { premium: { trial_days: 7 } } }));
     if (u.pathname === "/payment/subscription") return route.fulfill(json({ subscription: opts.sub ?? null }));
     if (u.pathname === "/payment/subscribe")
@@ -71,4 +73,34 @@ test("abonné : état de l'abonnement et résiliation en ligne en deux étapes",
   await page.getByRole("button", { name: "Résilier mon abonnement" }).click();
   await page.getByRole("button", { name: "Oui, résilier" }).click();
   await expect(panel).toContainText("Résiliation enregistrée");
+});
+
+// Session « fantôme » : état connecté mémorisé, mais jeton absent ou refusé (ex. après un redéploiement du backend).
+const STALE_STORE = { state: { userId: "u_1", token: "x", userName: "Ana", plan: "free", isLoggedIn: true }, version: 0 };
+
+test("connecté mémorisé mais sans jeton : déconnexion propre, le choix d'un plan mène à la connexion", async ({ page }) => {
+  await page.addInitScript((st) => { localStorage.setItem("ma1-store-v8", JSON.stringify(st)); localStorage.removeItem("ma1_token"); }, STALE_STORE);
+  await mockApi(page, { enabled: true });
+  await page.goto("/abonnement");
+  await expect(page.getByRole("link", { name: "Connexion" }).first()).toBeVisible();        // plus de faux « connecté »
+  await page.getByRole("button", { name: "Choisir" }).first().click();
+  await expect(page).toHaveURL(/\/connexion\?mode=register&next=/);
+});
+
+test("jeton refusé (401) à la restauration de session : déconnexion", async ({ page }) => {
+  await page.addInitScript((st) => { localStorage.setItem("ma1-store-v8", JSON.stringify(st)); localStorage.setItem("ma1_token", "vieux"); }, STALE_STORE);
+  await mockApi(page, { enabled: true, me401: true });
+  await page.goto("/abonnement");
+  await expect(page.getByRole("link", { name: "Connexion" }).first()).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem("ma1_token"))).toBeNull();
+});
+
+test("session expirée au moment de payer : retour à la connexion avec reprise sur le plan", async ({ page }) => {
+  await logIn(page);
+  await mockApi(page, { enabled: true, subscribe401: true });
+  await page.goto("/abonnement");
+  await page.getByRole("button", { name: "Choisir" }).first().click();
+  await page.getByRole("checkbox").check();
+  await page.getByRole("button", { name: "Commander avec obligation de paiement" }).click();
+  await expect(page).toHaveURL(/\/connexion\?next=%2Fabonnement%3Fplan%3Dpremium/);
 });

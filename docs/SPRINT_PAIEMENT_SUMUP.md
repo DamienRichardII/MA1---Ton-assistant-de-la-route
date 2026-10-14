@@ -37,5 +37,5 @@ Tout ce qui parle à SumUp est dans `sumup_client.py` (un seul fichier à ajuste
 ## Limites connues
 - Auto-École : le plafond « 30 élèves » n'est pas encore appliqué (Sprint 2).
 - Carte expirée / 3DS exigé sur un renouvellement : traité comme un échec (relances puis résiliation) ; pas encore de parcours « mettre à jour ma carte » (l'utilisateur se réabonne).
-- Les comptes utilisateurs vivent en mémoire côté backend (`_users`) : le plan, lui, est relu depuis `subscriptions` à la connexion et sur `/auth/me`.
+- Comptes : la source de vérité est la table Supabase `users` ; le cache mémoire `_users` est rechargé au démarrage (`[startup] N comptes rechargés`) et à la demande. Auparavant, chaque redéploiement effaçait tous les comptes (connexion impossible, erreurs 401). Le plan est relu depuis `subscriptions` à la connexion et sur `/auth/me`.
 - Stripe (`/stripe/*`) reste en place mais inutilisé.

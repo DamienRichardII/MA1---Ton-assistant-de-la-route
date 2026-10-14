@@ -37,7 +37,7 @@ function statusLine(s: Sub): string {
 export function WebPricing() {
   const router = useRouter();
   const params = useSearchParams();
-  const { isLoggedIn } = useStore();
+  const { isLoggedIn, logout } = useStore();
   const [annual, setAnnual] = useState(params.get('plan') === 'annual');
   const [cfg, setCfg] = useState<{ enabled: boolean; plans: Record<string, { trial_days: number }> } | null>(null);
   const [sub, setSub] = useState<Sub | null>(null);
@@ -72,7 +72,14 @@ export function WebPricing() {
       const url = new URL(r.checkout_url);
       if (url.protocol !== 'https:') throw new Error('Lien de paiement invalide.');
       window.location.href = url.toString();
-    } catch (e: any) { setErr(e.message || 'Paiement indisponible.'); setBusy(false); }
+    } catch (e: any) {
+      if (e?.status === 401) {   // session expirée : on repart sur la connexion, puis retour sur ce plan
+        localStorage.removeItem('ma1_token'); logout();
+        router.push(`/connexion?next=${encodeURIComponent(`/abonnement?plan=${confirm}`)}`);
+        return;
+      }
+      setErr(e.message || 'Paiement indisponible.'); setBusy(false);
+    }
   };
 
   const doCancel = async (resume = false) => {

@@ -365,6 +365,54 @@ def get_supabase():
         print(f"[WARN Supabase] {e}")
         return None
 
+
+# ── Comptes : la source de vérité est Supabase (table users). `_users` n'est qu'un cache mémoire,
+# rechargé au démarrage et à la demande : sans cela, chaque redéploiement effaçait tous les comptes
+# (connexion impossible, jetons rejetés, abonnements inaccessibles).
+def _user_from_row(r: dict) -> dict:
+    by = None
+    if r.get("birth_date"):
+        try: by = int(str(r["birth_date"])[:4])
+        except ValueError: by = None
+    return {"user_id": r.get("user_id"), "email": (r.get("email") or "").lower(), "name": r.get("name") or "",
+            "pw_hash": r.get("password_hash") or "", "token": "", "plan": r.get("plan") or "free",
+            "birth_year": by, "created": str(r.get("created_at") or "")}
+
+def _hydrate_user(row: dict):
+    u = _user_from_row(row)
+    if not u["user_id"] or not u["email"] or not u["pw_hash"]: return None
+    cached = _users.setdefault(u["email"], u)          # ne remplace jamais une entrée déjà vivante
+    if cached["plan"] != "free": get_usage(cached["user_id"])["plan"] = cached["plan"]
+    return cached
+
+def _load_user(column: str, value: str):
+    sb = get_supabase()
+    if sb is None or not value: return None
+    try:
+        rows = sb.table("users").select("*").eq(column, value).limit(1).execute().data or []
+        return _hydrate_user(rows[0]) if rows else None
+    except Exception as e:
+        print(f"[users] reload ({column}) warn: {e}", flush=True)
+        return None
+
+def _load_user_by_email(email: str): return _load_user("email", email)
+def _load_user_by_id(uid: str): return _load_user("user_id", uid)
+
+@app.on_event("startup")
+async def _hydrate_users_on_startup():
+    sb = get_supabase()
+    if sb is None: return
+    try:
+        n, start = 0, 0
+        while True:
+            rows = sb.table("users").select("*").range(start, start + 999).execute().data or []
+            n += sum(1 for r in rows if _hydrate_user(r))
+            if len(rows) < 1000: break
+            start += 1000
+        print(f"[startup] {n} comptes rechargés depuis Supabase", flush=True)
+    except Exception as e:
+        print(f"[startup] rechargement des comptes impossible: {e}", flush=True)
+
 _PROFILE_COLS = {
     "level", "score_total", "score_correct", "weak_topics", "strong_topics",
     "theme_scores", "plan_day", "plan_started", "exam_results", "streak_days", "last_seen",
@@ -504,7 +552,7 @@ def health():
 @app.post("/auth/register")
 async def auth_register(req:AuthRegisterRequest):
     email=req.email.lower().strip()
-    if email in _users: raise HTTPException(400,"Email deja utilise")
+    if email in _users or _load_user_by_email(email): raise HTTPException(400,"Email deja utilise")
     if req.birth_year:
         age = date.today().year - req.birth_year
         if age < 15: raise HTTPException(400, "Vous devez avoir au moins 15 ans (conduite accompagnee)")
@@ -566,7 +614,7 @@ async def auth_register(req:AuthRegisterRequest):
 @app.post("/auth/login")
 async def auth_login(req:AuthLoginRequest):
     email=req.email.lower().strip()
-    user=_users.get(email)
+    user=_users.get(email) or _load_user_by_email(email)
     if not user or not check_pw(req.password, user["pw_hash"]): raise HTTPException(401,"Email ou mot de passe incorrect")
     token=mk_token(user["user_id"]); user["token"]=token
     await _refresh_plan(user["user_id"])
@@ -597,10 +645,10 @@ async def auth_login(req:AuthLoginRequest):
 async def auth_me(token:str):
     uid = verify_token(token)
     if uid:
-        await _refresh_plan(uid)
-        for u in _users.values():
-            if u["user_id"] == uid:
-                return {"user_id":u["user_id"],"email":u["email"],"name":u.get("name",""),"plan":u.get("plan","free"),"profile":get_profile(u["user_id"])}
+        u = next((x for x in _users.values() if x["user_id"] == uid), None) or _load_user_by_id(uid)
+        if u:
+            await _refresh_plan(uid)
+            return {"user_id":u["user_id"],"email":u["email"],"name":u.get("name",""),"plan":u.get("plan","free"),"profile":get_profile(u["user_id"])}
     # Fallback: check raw token
     for u in _users.values():
         if u.get("token")==token:

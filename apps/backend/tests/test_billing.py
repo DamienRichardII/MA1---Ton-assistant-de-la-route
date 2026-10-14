@@ -324,3 +324,53 @@ def test_http_routes(monkeypatch, env):
     assert c.post("/cron/billing").status_code in (401, 403)                              # cron protégé
     monkeypatch.setenv("CRON_SECRET", "cr0n")
     assert c.post("/cron/billing", headers={"X-Cron-Secret": "cr0n"}).json()["results"]["checked"] == 0
+
+
+# ── Comptes : survie à un redéploiement (cache mémoire vidé) ──
+class FakeSupabaseUsers:
+    """Simule juste table('users').select().eq().limit()/.range().execute().data."""
+    def __init__(self, rows): self.rows, self._f, self._rng = rows, None, None
+    def table(self, name): assert name == "users"; self._f, self._rng = None, None; return self
+    def select(self, *_): return self
+    def eq(self, col, val): self._f = (col, val); return self
+    def limit(self, n): return self
+    def range(self, a, b): self._rng = (a, b); return self
+    def execute(self):
+        rows = [r for r in self.rows if not self._f or r.get(self._f[0]) == self._f[1]]
+        if self._rng: rows = rows[self._rng[0]:self._rng[1] + 1]
+        class R: pass
+        r = R(); r.data = rows; return r
+
+
+def test_accounts_survive_backend_restart(monkeypatch):
+    from fastapi.testclient import TestClient
+    import api
+    c = TestClient(api.app)
+    email = f"restart-{uuid.uuid4().hex[:6]}@test.com"
+    reg = c.post("/auth/register", json={"email": email, "password": "pass123", "name": "Re"}).json()
+    row = {"user_id": reg["user_id"], "email": email, "name": "Re", "password_hash": api._users[email]["pw_hash"],
+           "plan": "premium", "birth_date": "2000-01-01", "created_at": "2026-10-01T00:00:00+00:00"}
+    api._users.pop(email)                                                     # ← redéploiement : le cache est vide
+    monkeypatch.setattr(api, "get_supabase", lambda: FakeSupabaseUsers([row]))
+    # le jeton émis avant le redémarrage reste valide et /auth/me retrouve le compte
+    me = c.get(f"/auth/me?token={reg['token']}")
+    assert me.status_code == 200 and me.json()["email"] == email and me.json()["plan"] == "premium"
+    # reconnexion possible avec le mot de passe, même cache vidé
+    api._users.pop(email)
+    assert c.post("/auth/login", json={"email": email, "password": "pass123"}).status_code == 200
+    # on ne peut pas recréer un compte déjà en base
+    api._users.pop(email)
+    assert c.post("/auth/register", json={"email": email, "password": "x12345", "name": "Bis"}).status_code == 400
+    # mauvais mot de passe toujours refusé
+    api._users.pop(email)
+    assert c.post("/auth/login", json={"email": email, "password": "mauvais"}).status_code == 401
+
+
+def test_startup_hydration_loads_all_accounts(monkeypatch):
+    import api
+    rows = [{"user_id": f"u{i}", "email": f"h{i}@t.fr", "name": "", "password_hash": "x", "plan": "free"} for i in range(3)]
+    rows.append({"user_id": "u9", "email": "", "password_hash": "x"})         # ligne incomplète ignorée
+    for r in rows: api._users.pop(r["email"], None)
+    monkeypatch.setattr(api, "get_supabase", lambda: FakeSupabaseUsers(rows))
+    import asyncio; asyncio.run(api._hydrate_users_on_startup())
+    assert all(f"h{i}@t.fr" in api._users for i in range(3)) and "" not in api._users
