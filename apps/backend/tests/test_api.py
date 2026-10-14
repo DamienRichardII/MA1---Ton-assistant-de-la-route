@@ -11,6 +11,28 @@ os.environ["APP_ENV"] = "test"
 from api import app
 client = TestClient(app)
 
+import security
+
+
+_n = [0]
+
+
+def make_user(admin=False):
+    """Crée un utilisateur et renvoie (user_id, en-têtes Authorization)."""
+    _n[0] += 1
+    email = f"auto{_n[0]}@test.com"
+    r = client.post("/auth/register", json={"email": email, "password": "pass123"})
+    if admin:
+        import api
+        api.ADMIN_EMAILS = set(api.ADMIN_EMAILS) | {email}
+    return r.json()["user_id"], {"Authorization": f"Bearer {r.json()['token']}"}
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limits():
+    security._hits.clear(); security._fails.clear()
+    yield
+
 def mock_claude(text="Reponse test"):
     m = MagicMock()
     m.content = [MagicMock(text=text)]
@@ -55,7 +77,7 @@ class TestAuth:
     def test_auth_me(self):
         r = client.post("/auth/register", json={"email": "me@test.com", "password": "pass123", "name": "Me"})
         token = r.json()["token"]
-        r2 = client.get(f"/auth/me?token={token}")
+        r2 = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
         assert r2.status_code == 200
         assert r2.json()["name"] == "Me"
 
@@ -64,30 +86,31 @@ class TestPricing:
     def test_pricing(self):
         r = client.get("/pricing")
         plans = r.json()["plans"]
-        assert len(plans) == 3
-        assert plans[0]["price_eur"] == 0
-        assert plans[1]["price_eur"] == 10
-        assert plans[2]["price_eur"] == 200
+        assert [p["price_eur"] for p in plans] == [0, 10, 79, 200]
 
     def test_upgrade(self):
-        r = client.post("/plan/upgrade", json={"user_id": "u_test", "plan": "premium"})
+        _, h = make_user(admin=True)
+        r = client.post("/plan/upgrade", json={"user_id": "u_test", "plan": "premium"}, headers=h)
         assert r.json()["plan"] == "premium"
 
     def test_upgrade_invalid(self):
-        r = client.post("/plan/upgrade", json={"user_id": "u_test", "plan": "invalid"})
+        _, h = make_user(admin=True)
+        r = client.post("/plan/upgrade", json={"user_id": "u_test", "plan": "invalid"}, headers=h)
         assert r.status_code == 400
 
 
 class TestProfile:
     def test_new_profile(self):
-        r = client.get("/profile/new_user_xyz")
+        uid, h = make_user()
+        r = client.get(f"/profile/{uid}", headers=h)
         assert r.json()["score_total"] == 0
         assert r.json()["level"] == "debutant"
 
 
 class TestReadiness:
     def test_zero(self):
-        r = client.get("/readiness/fresh_user")
+        uid, h = make_user()
+        r = client.get(f"/readiness/{uid}", headers=h)
         assert r.json()["readiness"] == 0
         assert r.json()["status"] == "continuez"
 
@@ -136,14 +159,16 @@ class TestQCM:
         assert len(r.json()["questions"]) >= 1
 
     def test_qcm_result(self):
-        r = client.post("/qcm/result", json={"user_id": "u_result", "topic": "vitesse", "correct": True})
+        uid, h = make_user()
+        r = client.post("/qcm/result", json={"user_id": uid, "topic": "vitesse", "correct": True}, headers=h)
         assert r.status_code == 200
         assert r.json()["profile"]["score_correct"] >= 1
 
 
 class TestExam:
     def test_exam_result(self):
-        r = client.post("/exam/result", json={"user_id": "u_exam", "correct": 35, "total": 40, "time_seconds": 1200})
+        uid, h = make_user()
+        r = client.post("/exam/result", json={"user_id": uid, "correct": 35, "total": 40, "time_seconds": 1200}, headers=h)
         assert r.status_code == 200
         assert r.json()["result"]["passed"] == True
         assert r.json()["result"]["pct"] == 88
@@ -151,20 +176,20 @@ class TestExam:
 
 class TestRGPD:
     def test_export(self):
-        r = client.get("/rgpd/export/test_rgpd")
+        uid, h = make_user()
+        r = client.get(f"/rgpd/export/{uid}", headers=h)
         assert r.status_code == 200
 
     def test_delete(self):
-        client.post("/auth/register", json={"email": "del@test.com", "password": "pass123"})
-        r = client.post("/auth/login", json={"email": "del@test.com", "password": "pass123"})
-        uid = r.json()["user_id"]
-        r2 = client.delete(f"/rgpd/delete/{uid}")
+        uid, h = make_user()
+        r2 = client.delete(f"/rgpd/delete/{uid}", headers=h)
         assert r2.json()["success"]
 
 
 class TestReferral:
     def test_get_code(self):
-        r = client.get("/referral/u_ref_test")
+        uid, h = make_user()
+        r = client.get(f"/referral/{uid}", headers=h)
         assert r.status_code == 200
         assert r.json()["code"].startswith("MA1-")
 
@@ -175,6 +200,21 @@ class TestAnalytics:
         assert r.json()["tracked"]
 
     def test_summary(self):
-        r = client.get("/analytics/summary?days=7")
+        _, h = make_user(admin=True)
+        r = client.get("/analytics/summary?days=7", headers=h)
         assert r.status_code == 200
         assert "total_users" in r.json()
+
+
+class TestSecurityGuards:
+    def test_login_lockout(self):
+        for _ in range(8):
+            assert client.post("/auth/login", json={"email": "ghost@test.com", "password": "x"}).status_code == 401
+        assert client.post("/auth/login", json={"email": "ghost@test.com", "password": "x"}).status_code == 429
+
+    def test_register_rate_limited(self):
+        codes = [client.post("/auth/register", json={"email": f"rl{i}@test.com", "password": "pass123"}).status_code for i in range(7)]
+        assert 429 in codes
+
+    def test_auth_me_requires_token(self):
+        assert client.get("/auth/me").status_code == 401

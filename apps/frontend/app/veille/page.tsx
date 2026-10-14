@@ -12,7 +12,8 @@ function MobileVeille() {
     api.getVeille().then(d => { setData(d); setLoading(false); }).catch(() => setLoading(false));
   }, []);
 
-  const fmt = (t: string) => t.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>');
+  const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const fmt = (t: string) => esc(t).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>');
 
   return (
     <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">

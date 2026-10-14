@@ -14,7 +14,8 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Request, Hea
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from security import rate_limit, check_lockout, record_failure, clear_failures, client_ip
 
 # [Sprint Admin/Emails/Support] Modules métiers dédiés.
 # Imports optionnels (le backend doit pouvoir démarrer même sans Supabase configurée).
@@ -516,7 +517,7 @@ def get_claude():
 class Message(BaseModel):
     role:str; content:str
 class ChatRequest(BaseModel):
-    message:str; user_id:Optional[str]="anonymous"; history:Optional[List[Message]]=None
+    message:str=Field(max_length=4000); user_id:Optional[str]="anonymous"; history:Optional[List[Message]]=Field(default=None,max_length=40)
 class QCMGenerateRequest(BaseModel):
     topic:str; n:int=6; user_id:Optional[str]="anonymous"; difficulty:Optional[str]="auto"
 class QCMResultRequest(BaseModel):
@@ -549,7 +550,7 @@ def health():
     return {"status":"ok","version":"8.0.0","claude":CLAUDE_MODEL,"rag":col is not None,"supabase":sb is not None,"stripe":bool(STRIPE_SECRET_KEY),"api_key":bool(os.getenv("ANTHROPIC_API_KEY")),"ts":datetime.now(timezone.utc).isoformat()}
 
 # AUTH
-@app.post("/auth/register")
+@app.post("/auth/register", dependencies=[Depends(rate_limit("register",5,3600))])
 async def auth_register(req:AuthRegisterRequest):
     email=req.email.lower().strip()
     if email in _users or _load_user_by_email(email): raise HTTPException(400,"Email deja utilise")
@@ -611,11 +612,15 @@ async def auth_register(req:AuthRegisterRequest):
         except Exception: pass
     return {"success":True,"user_id":uid,"token":token,"name":req.name,"plan":"free"}
 
-@app.post("/auth/login")
+@app.post("/auth/login", dependencies=[Depends(rate_limit("login",15,300))])
 async def auth_login(req:AuthLoginRequest):
     email=req.email.lower().strip()
     user=_users.get(email) or _load_user_by_email(email)
-    if not user or not check_pw(req.password, user["pw_hash"]): raise HTTPException(401,"Email ou mot de passe incorrect")
+    _lk=f"login:{email}"
+    check_lockout(_lk, 8)
+    if not user or not check_pw(req.password, user["pw_hash"]):
+        record_failure(_lk); raise HTTPException(401,"Email ou mot de passe incorrect")
+    clear_failures(_lk)
     token=mk_token(user["user_id"]); user["token"]=token
     await _refresh_plan(user["user_id"])
     if HAS_ADMIN_STACK:
@@ -642,21 +647,22 @@ async def auth_login(req:AuthLoginRequest):
     return {"success":True,"user_id":user["user_id"],"token":token,"name":user.get("name",""),"plan":user.get("plan","free"),"profile":get_profile(user["user_id"])}
 
 @app.get("/auth/me")
-async def auth_me(token:str):
-    uid = verify_token(token)
+async def auth_me(token:Optional[str]=None, authorization:Optional[str]=Header(None)):
+    token = _extract_token(authorization, token) or ""
+    uid = verify_token(token) if token else None
     if uid:
         u = next((x for x in _users.values() if x["user_id"] == uid), None) or _load_user_by_id(uid)
         if u:
             await _refresh_plan(uid)
             return {"user_id":u["user_id"],"email":u["email"],"name":u.get("name",""),"plan":u.get("plan","free"),"profile":get_profile(u["user_id"])}
     # Fallback: check raw token
-    for u in _users.values():
+    for u in (_users.values() if token else []):
         if u.get("token")==token:
             return {"user_id":u["user_id"],"email":u["email"],"name":u.get("name",""),"plan":u.get("plan","free"),"profile":get_profile(u["user_id"])}
     raise HTTPException(401,"Token invalide")
 
 # CHAT
-@app.post("/chat")
+@app.post("/chat", dependencies=[Depends(rate_limit("chat",20,60))])
 async def chat(req:ChatRequest):
     uid=req.user_id or "anonymous"
     if not check_limit(uid,"question"): raise HTTPException(429,{"error":"limit_reached","message":"Limite 10 questions/jour. Passez Premium !"})
@@ -673,12 +679,13 @@ async def chat(req:ChatRequest):
     _conversations[uid].append({"role":"user","content":req.message})
     _conversations[uid].append({"role":"assistant","content":answer})
     if len(_conversations[uid])>40: _conversations[uid]=_conversations[uid][-40:]
+    if len(_conversations)>5000: _conversations.pop(next(iter(_conversations)),None)
     get_usage(uid)["questions"]+=1; get_profile(uid)["sessions"]+=1
     await sb_track({"user_id":uid,"event":"chat","ts":time.time()})
     return {"answer":answer + AI_DISCLAIMER,"sources":sources,"rag_used":bool(ctx),"profile":get_profile(uid),"usage":get_usage(uid)}
 
 # CHAT STREAMING SSE
-@app.post("/chat/stream")
+@app.post("/chat/stream", dependencies=[Depends(rate_limit("chat",20,60))])
 async def chat_stream(req:ChatRequest):
     uid=req.user_id or "anonymous"
     if not check_limit(uid,"question"): raise HTTPException(429,{"error":"limit_reached"})
@@ -699,6 +706,7 @@ async def chat_stream(req:ChatRequest):
             _conversations[uid].append({"role":"user","content":req.message})
             _conversations[uid].append({"role":"assistant","content":full})
             if len(_conversations[uid])>40: _conversations[uid]=_conversations[uid][-40:]
+            if len(_conversations)>5000: _conversations.pop(next(iter(_conversations)),None)
             get_usage(uid)["questions"]+=1; get_profile(uid)["sessions"]+=1
             yield f"data: {json.dumps({'type':'done','usage':get_usage(uid)})}\n\n"
         except Exception as e:
@@ -710,7 +718,7 @@ def clear_history(req:ClearRequest):
     _conversations[req.user_id]=[]; return {"success":True}
 
 # VISION
-@app.post("/vision")
+@app.post("/vision", dependencies=[Depends(rate_limit("vision",6,60))])
 async def analyze_panneau(file:UploadFile=File(...),user_id:str=Form("anonymous")):
     if not check_limit(user_id,"question"): raise HTTPException(429,{"error":"limit_reached"})
     content=await file.read()
@@ -727,7 +735,7 @@ async def analyze_panneau(file:UploadFile=File(...),user_id:str=Form("anonymous"
     return {"analysis":answer,"mime":mime}
 
 # QCM
-@app.post("/qcm/generate")
+@app.post("/qcm/generate", dependencies=[Depends(rate_limit("qcm",20,60))])
 async def generate_qcm(req:QCMGenerateRequest):
     uid=req.user_id or "anonymous"
     if not check_limit(uid,"qcm"): raise HTTPException(429,{"error":"limit_reached"})
@@ -1352,7 +1360,7 @@ async def send_streak_reminder(email: str, name: str, streak: int):
     except: pass
 
 # POSITIONING TEST
-@app.post("/test/positionnement")
+@app.post("/test/positionnement", dependencies=[Depends(rate_limit("posit",20,60))])
 async def positionnement_test(user_id: str, answers: List[dict], _uid: str = Depends(require_auth_user_match)):
     """Analyze positioning test results and generate personalized 30-day plan."""
     p = get_profile(user_id)
@@ -1845,12 +1853,16 @@ class XPEventRequest(BaseModel):
 
 # ── ADMIN AUTH ─────────────────────────────────────────────────────────────
 
-@app.post("/admin/auth/login")
+@app.post("/admin/auth/login", dependencies=[Depends(rate_limit("adminlogin",20,300))])
 async def admin_auth_login(req: AdminLoginRequest, request: Request):
     if not HAS_ADMIN_STACK:
         raise HTTPException(503, "Stack admin non disponible")
     sb = get_supabase()
+    _lk = f"admin:{client_ip(request)}:{(req.email or '').lower()}"
+    check_lockout(_lk)
     admin = admin_auth_mod.authenticate_admin(sb, req.email, req.password)
+    if admin: clear_failures(_lk)
+    else: record_failure(_lk)
     # Log tentative (succès / échec)
     try:
         if sb is not None:
@@ -1866,7 +1878,7 @@ async def admin_auth_login(req: AdminLoginRequest, request: Request):
     return {"success": True, "token": token, "admin": {"id": admin["id"], "email": admin["email"], "display_name": admin.get("display_name", "")}}
 
 
-@app.post("/admin/auth/forgot-password")
+@app.post("/admin/auth/forgot-password", dependencies=[Depends(rate_limit("adminforgot",5,3600))])
 async def admin_auth_forgot(req: AdminForgotRequest, request: Request):
     if not HAS_ADMIN_STACK:
         raise HTTPException(503, "Stack admin non disponible")

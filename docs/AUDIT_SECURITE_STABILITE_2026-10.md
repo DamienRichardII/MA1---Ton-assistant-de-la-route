@@ -28,3 +28,10 @@
 
 ## Actions utilisateur
 - Faire pivoter `CRON_SECRET` (collé dans PowerShell) ; planifier la rotation si la clé anon a été partagée.
+
+## Correctifs appliqués (branche claude/hopeful-johnson-vlfiqt)
+- Limitation de débit par IP (`src/security.py`) sur /chat, /chat/stream, /vision, /qcm/generate, /test/positionnement, inscription, connexion, admin login/forgot ; verrouillage après échecs (utilisateur 8, admin 5 / 15 min) ; message chat limité à 4000 car., historique à 40.
+- `/auth/me` lit `Authorization: Bearer` (le `?token=` reste toléré pour anciens clients) ; front et standalone migrés.
+- `start.sh` : `--reload` retiré. Conversations en mémoire bornées à 5000.
+- XSS : échappement HTML (veille, classement, dashboard moniteur, messages du chat standalone).
+- Tests `test_api.py` réparés (63 tests verts). `018_lockdown_public_access.sql` : à exécuter dans l'éditeur SQL Supabase.

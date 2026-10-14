@@ -18,4 +18,4 @@ echo "🌐 http://localhost:${PORT:-8000}"
 echo "📄 API Docs: http://localhost:${PORT:-8000}/docs"
 echo "🐍 PYTHONPATH=$PYTHONPATH"
 echo ""
-uvicorn src.api:app --host 0.0.0.0 --port ${PORT:-8000} --reload
+uvicorn src.api:app --host 0.0.0.0 --port ${PORT:-8000}

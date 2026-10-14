@@ -42,7 +42,7 @@ class MA1Api {
   }
 
   async me(token: string) {
-    return this.request(`/auth/me?token=${token}`);
+    return this.request('/auth/me', { headers: { Authorization: `Bearer ${token}` } });
   }
 
   // Chat
